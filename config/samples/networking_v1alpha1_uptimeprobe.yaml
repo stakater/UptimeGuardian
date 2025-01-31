@@ -1,0 +1,9 @@
+apiVersion: networking.stakater.com/v1alpha1
+kind: UptimeProbe
+metadata:
+  labels:
+    app.kubernetes.io/name: uptimeguardian
+    app.kubernetes.io/managed-by: kustomize
+  name: uptimeprobe-sample
+spec:
+  # TODO(user): Add fields here
