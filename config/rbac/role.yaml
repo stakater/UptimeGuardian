@@ -1,11 +1,32 @@
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  labels:
-    app.kubernetes.io/name: uptimeguardian
-    app.kubernetes.io/managed-by: kustomize
   name: manager-role
 rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - networking.stakater.com
+  resources:
+  - uptimeprobes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.stakater.com
+  resources:
+  - uptimeprobes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - networking.stakater.com
+  resources:
+  - uptimeprobes/status
+  verbs:
+  - get
+  - patch
+  - update

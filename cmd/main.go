@@ -37,6 +37,8 @@ import (
 	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
 	"github.com/stakater/UptimeGuardian/internal/controller"
 	//+kubebuilder:scaffold:imports
+
+	hostedCluster "github.com/openshift/hypershift/api/hypershift/v1beta1"
 )
 
 var (
@@ -46,7 +48,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
+	utilruntime.Must(hostedCluster.AddToScheme(scheme))
 	utilruntime.Must(networkingv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -130,6 +132,14 @@ func main() {
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
+
+	if err = (&controller.SpokeClusterManagerReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "SpokeClusterManager")
+		os.Exit(1)
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

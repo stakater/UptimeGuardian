@@ -18,7 +18,7 @@ package controller
 
 import (
 	"context"
-
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +31,7 @@ import (
 type UptimeProbeReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	logger logr.Logger
 }
 
 //+kubebuilder:rbac:groups=networking.stakater.com,resources=uptimeprobes,verbs=get;list;watch;create;update;patch;delete
@@ -38,7 +39,7 @@ type UptimeProbeReconciler struct {
 //+kubebuilder:rbac:groups=networking.stakater.com,resources=uptimeprobes/finalizers,verbs=update
 
 func (r *UptimeProbeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	r.logger = log.FromContext(ctx)
 
 	return ctrl.Result{}, nil
 }
