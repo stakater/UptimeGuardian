@@ -56,18 +56,6 @@ func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SpokeRouteReconciler) SetupWithManager(mgr ctrl.Manager, name string) error {
-	//build, err := ctrl.NewControllerManagedBy(mgr).
-	//	Watches(&v1.Route{}, &handler.EnqueueRequestForObject{}).Build(r)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//chanel := make(chan event.GenericEvent)
-	//err = build.Watch(source.Channel(chanel, &handler.EnqueueRequestForObject{}))
-	//if err != nil {
-	//	return err
-	//}
-
 	r.name = name
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1.Route{}).

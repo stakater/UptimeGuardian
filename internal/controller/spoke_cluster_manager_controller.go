@@ -36,7 +36,7 @@ type SpokeClusterManagerReconciler struct {
 //+kubebuilder:rbac:groups=networking.stakater.com,resources=uptimeprobes/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=networking.stakater.com,resources=uptimeprobes/finalizers,verbs=update
 //+kubebuilder:rbac:groups=hypershift.openshift.io,resources=hostedclusters,verbs=get;list;watch
-//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 
 func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.log = log.FromContext(ctx)
@@ -86,6 +86,8 @@ func (r *SpokeClusterManagerReconciler) createManagerForSpokeCluster(ctx context
 		Metrics: server.Options{
 			BindAddress: "0",
 		},
+		HealthProbeBindAddress: "0",
+		LeaderElection:         false,
 	})
 	if err != nil {
 		cancel()

@@ -18,10 +18,10 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2025-01-31T14:47:40Z"
+    createdAt: "2025-01-31T15:11:37Z"
     operators.operatorframework.io/builder: operator-sdk-v1.36.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-  name: uptimeguardian.v0.0.3
+  name: uptimeguardian.v0.0.4
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -144,7 +144,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: stakaterdockerhubpullroot/uptimeguardian:v0.0.3
+                image: stakaterdockerhubpullroot/uptimeguardian:v0.0.4
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -233,4 +233,4 @@ spec:
   provider:
     name: Stakater AB
     url: https://www.stakater.com
-  version: 0.0.3
+  version: 0.0.4
