@@ -19,12 +19,14 @@ package controller
 import (
 	"context"
 	"github.com/go-logr/logr"
+	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // UptimeProbeReconciler reconciles a UptimeProbe object
@@ -40,12 +42,24 @@ type UptimeProbeReconciler struct {
 
 func (r *UptimeProbeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.logger = log.FromContext(ctx)
+	r.logger.Info("Reconciling UptimeProbe")
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *UptimeProbeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	build, err := ctrl.NewControllerManagedBy(mgr).
+		For(&networkingv1alpha1.UptimeProbe{}).Build(r)
+	if err != nil {
+		return err
+	}
+
+	chanel := make(chan event.GenericEvent)
+	err = build.Watch(source.Channel(chanel, &handler.EnqueueRequestForObject{}))
+	if err != nil {
+		return err
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&networkingv1alpha1.UptimeProbe{}).
 		Complete(r)

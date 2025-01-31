@@ -1,0 +1,51 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: uptimeguardian.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: UptimeProbe is the Schema for the uptimeprobes API
+      displayName: Uptime Probe
+      kind: UptimeProbe
+      name: uptimeprobes.networking.stakater.com
+      version: v1alpha1
+  description: Uptime management for Hypershift
+  displayName: Uptime Guardian
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - Uptime Guardian Operator
+  - Hypershift
+  - Openshift
+  - Red Hat
+  - Stakater
+  - Route
+  - Probe
+  links:
+  - name: Uptimeguardian
+    url: https://uptimeguardian.domain
+  maturity: alpha
+  provider:
+    name: Stakater AB
+    url: https://www.stakater.com
+  version: 0.0.0
