@@ -36,9 +36,11 @@ import (
 
 	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
 	"github.com/stakater/UptimeGuardian/internal/controller"
+
 	//+kubebuilder:scaffold:imports
 
 	hostedCluster "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 )
 
 var (
@@ -49,7 +51,9 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(hostedCluster.AddToScheme(scheme))
+	// utilruntime.Must(routev1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -124,22 +128,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	//if err = (&controller.UptimeProbeReconciler{
-	//	Client: mgr.GetClient(),
-	//	Scheme: mgr.GetScheme(),
-	//}).SetupWithManager(mgr); err != nil {
-	//	setupLog.Error(err, "unable to create controller", "controller", "UptimeProbe")
-	//	os.Exit(1)
-	//}
-	//+kubebuilder:scaffold:builder
-
-	if err = (&controller.SpokeClusterManagerReconciler{
+	spokeClusterManager := &controller.SpokeClusterManagerReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}
+
+	uptimeProbeReconciler := &controller.UptimeProbeReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}
+
+	// Wire up the controllers
+	if err = spokeClusterManager.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SpokeClusterManager")
 		os.Exit(1)
 	}
+
+	if err = uptimeProbeReconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "UptimeProbe")
+		os.Exit(1)
+	}
+
+	// Share the UptimeProbe configuration
+	spokeClusterManager.UptimeConfig = uptimeProbeReconciler.SpokeClusterManagerConfig
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
@@ -150,8 +161,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create context that can be canceled
+	ctx := ctrl.SetupSignalHandler()
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

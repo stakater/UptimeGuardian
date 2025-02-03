@@ -18,22 +18,21 @@ package controller
 
 import (
 	"context"
+
 	"github.com/go-logr/logr"
 	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // UptimeProbeReconciler reconciles a UptimeProbe object
 type UptimeProbeReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	logger logr.Logger
+	Scheme                    *runtime.Scheme
+	logger                    logr.Logger
+	SpokeClusterManagerConfig *networkingv1alpha1.UptimeProbe
 }
 
 //+kubebuilder:rbac:groups=networking.stakater.com,resources=uptimeprobes,verbs=get;list;watch;create;update;patch;delete
@@ -44,22 +43,45 @@ func (r *UptimeProbeReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	r.logger = log.FromContext(ctx)
 	r.logger.Info("Reconciling UptimeProbe")
 
+	// Fetch UptimeProbe instance
+	probe := &networkingv1alpha1.UptimeProbe{}
+	if err := r.Get(ctx, req.NamespacedName, probe); err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return ctrl.Result{}, err
+		}
+		// If not found, create the default singleton instance
+		if req.Name == "default-uptime-probe" && req.Namespace == "test-1" {
+			defaultProbe := networkingv1alpha1.DefaultUptimeProbe()
+			if err := r.Create(ctx, defaultProbe); err != nil {
+				r.logger.Error(err, "Failed to create default UptimeProbe")
+				return ctrl.Result{}, err
+			}
+			r.logger.Info("Created default UptimeProbe")
+			probe = defaultProbe
+		} else {
+			return ctrl.Result{}, nil
+		}
+	}
+
+	// Update the SpokeClusterManagerConfig
+	r.SpokeClusterManagerConfig = probe
+	r.logger.Info("Updated SpokeClusterManagerConfig", "probe", probe.Name)
+
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *UptimeProbeReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	build, err := ctrl.NewControllerManagedBy(mgr).
-		For(&networkingv1alpha1.UptimeProbe{}).Build(r)
-	if err != nil {
-		return err
+	// Create the default singleton instance during setup
+	ctx := context.Background()
+	defaultProbe := networkingv1alpha1.DefaultUptimeProbe()
+	if err := r.Create(ctx, defaultProbe); err != nil {
+		if client.IgnoreAlreadyExists(err) != nil {
+			r.logger.Error(err, "Failed to create default UptimeProbe during setup")
+			return err
+		}
 	}
 
-	chanel := make(chan event.GenericEvent)
-	err = build.Watch(source.Channel(chanel, &handler.EnqueueRequestForObject{}))
-	if err != nil {
-		return err
-	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&networkingv1alpha1.UptimeProbe{}).
 		Complete(r)

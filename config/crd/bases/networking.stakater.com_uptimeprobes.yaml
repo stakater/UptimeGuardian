@@ -38,6 +38,91 @@ spec:
             type: object
           spec:
             description: UptimeProbeSpec defines the desired state of UptimeProbe
+            properties:
+              labelSelector:
+                description: LabelSelector for filtering routes. If empty, no filtering
+                  will be applied.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              proberConfig:
+                description: ProberConfig contains the configuration for the prober
+                  service
+                properties:
+                  interval:
+                    default: 30s
+                    description: Interval is the interval between probe requests
+                    pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
+                  jobName:
+                    default: http_get
+                    description: JobName is the name of the job
+                    type: string
+                  module:
+                    default: http_2xx
+                    description: Module is the prober module to use
+                    type: string
+                  path:
+                    default: /probe
+                    description: Path is the path to use for the prober
+                    type: string
+                  scheme:
+                    default: http
+                    description: Scheme is the scheme to use for the prober (http/https)
+                    type: string
+                  url:
+                    default: blackbox-exporter.monitoring-system.svc:19115
+                    description: URL is the URL of the prober service
+                    type: string
+                type: object
+              targetNamespace:
+                default: test-1
+                description: TargetNamespace is the namespace where Probe resources
+                  will be created
+                type: string
+            required:
+            - proberConfig
             type: object
           status:
             description: UptimeProbeStatus defines the observed state of UptimeProbe
