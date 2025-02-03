@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -91,14 +92,49 @@ func (r *SpokeClusterRoutesReconciler) processHostedCluster(ctx context.Context,
 		return fmt.Errorf("failed to collect routes: %w", err)
 	}
 
-	// Process each route
+	// Get all existing probes for this cluster
+	existingProbes := &monitoringv1.ProbeList{}
+	if err := r.List(ctx, existingProbes, client.MatchingLabels{
+		LabelClusterName: cluster.Name,
+	}, client.InNamespace(r.UptimeConfig.Spec.TargetNamespace)); err != nil {
+		return fmt.Errorf("failed to list existing probes: %w", err)
+	}
+
+	// Create a map of existing probes by route key
+	existingProbesByRoute := make(map[string]*monitoringv1.Probe)
+	for i := range existingProbes.Items {
+		probe := existingProbes.Items[i]
+		routeKey := fmt.Sprintf("%s/%s", probe.Labels[LabelRouteNamespace], probe.Labels[LabelRouteName])
+		existingProbesByRoute[routeKey] = probe
+	}
+
+	// Process each route and track which probes are still needed
+	processedRoutes := make(map[string]bool)
 	for _, route := range routes.Items {
+		routeKey := fmt.Sprintf("%s/%s", route.Namespace, route.Name)
+		processedRoutes[routeKey] = true
+
 		r.log.Info("Processing route", "cluster", cluster.Name, "route", route.Name, "namespace", route.Namespace)
 		if err := r.processRoute(ctx, cluster, &route); err != nil {
 			r.log.Error(err, "Failed to process route",
 				"cluster", cluster.Name,
 				"route", route.Name,
 				"namespace", route.Namespace)
+		}
+	}
+
+	// Delete probes for routes that no longer exist
+	for routeKey, probe := range existingProbesByRoute {
+		if !processedRoutes[routeKey] {
+			r.log.Info("Deleting probe for removed route",
+				"probe", probe.Name,
+				"route", routeKey,
+				"cluster", cluster.Name)
+			if err := r.Delete(ctx, probe); err != nil {
+				r.log.Error(err, "Failed to delete probe for removed route",
+					"probe", probe.Name,
+					"route", routeKey)
+			}
 		}
 	}
 
@@ -135,13 +171,15 @@ func (r *SpokeClusterRoutesReconciler) collectRoutes(ctx context.Context, spokeC
 }
 
 func (r *SpokeClusterRoutesReconciler) processRoute(ctx context.Context, cluster *v1beta1.HostedCluster, route *routev1.Route) error {
+	routeKey := fmt.Sprintf("%s/%s", route.Namespace, route.Name)
+
 	// First try to find existing probe by labels
 	probes := &monitoringv1.ProbeList{}
 	if err := r.List(ctx, probes, client.MatchingLabels{
 		LabelClusterName:    cluster.Name,
 		LabelRouteName:      route.Name,
 		LabelRouteNamespace: route.Namespace,
-	}); err != nil {
+	}, client.InNamespace(r.UptimeConfig.Spec.TargetNamespace)); err != nil {
 		return fmt.Errorf("failed to list probes: %w", err)
 	}
 
@@ -151,14 +189,16 @@ func (r *SpokeClusterRoutesReconciler) processRoute(ctx context.Context, cluster
 	// Handle existing or create new
 	if len(probes.Items) > 0 {
 		existing := probes.Items[0]
-		existing.Annotations = probe.Annotations
-		// Update spec
-		existing.Spec = probe.Spec
-		existing.Labels = probe.Labels
-		if err := r.Update(ctx, existing); err != nil {
-			return fmt.Errorf("failed to update probe: %w", err)
+		// Check if probe needs update
+		if r.probeNeedsUpdate(existing, probe) {
+			existing.Annotations = probe.Annotations
+			existing.Spec = probe.Spec
+			existing.Labels = probe.Labels
+			if err := r.Update(ctx, existing); err != nil {
+				return fmt.Errorf("failed to update probe: %w", err)
+			}
+			r.log.Info("Updated existing probe", "name", existing.Name, "route", routeKey)
 		}
-		r.log.Info("Updated existing probe", "name", existing.Name)
 		return nil
 	}
 
@@ -166,7 +206,7 @@ func (r *SpokeClusterRoutesReconciler) processRoute(ctx context.Context, cluster
 	if err := r.Create(ctx, probe); err != nil {
 		return fmt.Errorf("failed to create probe: %w", err)
 	}
-	r.log.Info("Created new probe", "name", probe.Name)
+	r.log.Info("Created new probe", "name", probe.Name, "route", routeKey)
 	return nil
 }
 
@@ -273,6 +313,14 @@ func (r *SpokeClusterRoutesReconciler) cleanupAllResources(ctx context.Context) 
 
 	r.log.Info("Completed cleanup of all resources")
 	return nil
+}
+
+// probeNeedsUpdate checks if the existing probe needs to be updated
+func (r *SpokeClusterRoutesReconciler) probeNeedsUpdate(existing, desired *monitoringv1.Probe) bool {
+	// Compare relevant fields to determine if update is needed
+	return !reflect.DeepEqual(existing.Spec, desired.Spec) ||
+		!reflect.DeepEqual(existing.Labels, desired.Labels) ||
+		!reflect.DeepEqual(existing.Annotations, desired.Annotations)
 }
 
 // Add cleanup setup method
