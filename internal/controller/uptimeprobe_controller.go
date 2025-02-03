@@ -30,9 +30,9 @@ import (
 // UptimeProbeReconciler reconciles a UptimeProbe object
 type UptimeProbeReconciler struct {
 	client.Client
-	Scheme                    *runtime.Scheme
-	logger                    logr.Logger
-	SpokeClusterManagerConfig *networkingv1alpha1.UptimeProbe
+	Scheme                  *runtime.Scheme
+	logger                  logr.Logger
+	SpokeClusterRouteConfig *networkingv1alpha1.UptimeProbe
 }
 
 //+kubebuilder:rbac:groups=networking.stakater.com,resources=uptimeprobes,verbs=get;list;watch;create;update;patch;delete
@@ -63,9 +63,9 @@ func (r *UptimeProbeReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	// Update the SpokeClusterManagerConfig
-	r.SpokeClusterManagerConfig = probe
-	r.logger.Info("Updated SpokeClusterManagerConfig", "probe", probe.Name)
+	// Update the SpokeClusterRouteConfig
+	r.SpokeClusterRouteConfig = probe
+	r.logger.Info("Updated SpokeClusterRouteConfig", "probe", probe.Name)
 
 	return ctrl.Result{}, nil
 }

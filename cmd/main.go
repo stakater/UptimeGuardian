@@ -128,7 +128,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	spokeClusterManager := &controller.SpokeClusterManagerReconciler{
+	spokeClusterRoutesReconciler := &controller.SpokeClusterRoutesReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}
@@ -139,8 +139,8 @@ func main() {
 	}
 
 	// Wire up the controllers
-	if err = spokeClusterManager.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "SpokeClusterManager")
+	if err = spokeClusterRoutesReconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "SpokeClusterRoutes")
 		os.Exit(1)
 	}
 
@@ -150,7 +150,7 @@ func main() {
 	}
 
 	// Share the UptimeProbe configuration
-	spokeClusterManager.UptimeConfig = uptimeProbeReconciler.SpokeClusterManagerConfig
+	spokeClusterRoutesReconciler.UptimeConfig = uptimeProbeReconciler.SpokeClusterRouteConfig
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

@@ -29,12 +29,7 @@ const (
 	LabelRouteNamespace = "stakater.com/route-namespace"
 )
 
-type ClusterManager struct {
-	Manager manager.Manager
-	Cancel  context.CancelFunc
-}
-
-type SpokeClusterManagerReconciler struct {
+type SpokeClusterRoutesReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	log          logr.Logger
@@ -48,7 +43,7 @@ type SpokeClusterManagerReconciler struct {
 //+kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list
 
-func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *SpokeClusterRoutesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.log = log.FromContext(ctx)
 	r.log.Info("Reconciling HostedCluster", "namespace", req.Namespace, "name", req.Name)
 
@@ -75,7 +70,7 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	return ctrl.Result{RequeueAfter: time.Minute}, nil
 }
 
-func (r *SpokeClusterManagerReconciler) processHostedCluster(ctx context.Context, cluster *v1beta1.HostedCluster) error {
+func (r *SpokeClusterRoutesReconciler) processHostedCluster(ctx context.Context, cluster *v1beta1.HostedCluster) error {
 	if r.UptimeConfig == nil {
 		r.log.Info("No UptimeProbe configuration found, skipping reconciliation")
 		return nil
@@ -113,7 +108,7 @@ func (r *SpokeClusterManagerReconciler) processHostedCluster(ctx context.Context
 	return nil
 }
 
-func (r *SpokeClusterManagerReconciler) createSpokeClient(config *rest.Config) (client.Client, error) {
+func (r *SpokeClusterRoutesReconciler) createSpokeClient(config *rest.Config) (client.Client, error) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(routev1.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -123,7 +118,7 @@ func (r *SpokeClusterManagerReconciler) createSpokeClient(config *rest.Config) (
 	})
 }
 
-func (r *SpokeClusterManagerReconciler) collectRoutes(ctx context.Context, spokeClient client.Client) (*routev1.RouteList, error) {
+func (r *SpokeClusterRoutesReconciler) collectRoutes(ctx context.Context, spokeClient client.Client) (*routev1.RouteList, error) {
 	routes := &routev1.RouteList{}
 	listOpts := []client.ListOption{}
 
@@ -142,7 +137,7 @@ func (r *SpokeClusterManagerReconciler) collectRoutes(ctx context.Context, spoke
 	return routes, nil
 }
 
-func (r *SpokeClusterManagerReconciler) processRoute(ctx context.Context, cluster *v1beta1.HostedCluster, route *routev1.Route) error {
+func (r *SpokeClusterRoutesReconciler) processRoute(ctx context.Context, cluster *v1beta1.HostedCluster, route *routev1.Route) error {
 	// First try to find existing probe by labels
 	probes := &monitoringv1.ProbeList{}
 	if err := r.List(ctx, probes, client.MatchingLabels{
@@ -178,7 +173,7 @@ func (r *SpokeClusterManagerReconciler) processRoute(ctx context.Context, cluste
 	return nil
 }
 
-func (r *SpokeClusterManagerReconciler) mapRouteToProbe(cluster *v1beta1.HostedCluster, route *routev1.Route) *monitoringv1.Probe {
+func (r *SpokeClusterRoutesReconciler) mapRouteToProbe(cluster *v1beta1.HostedCluster, route *routev1.Route) *monitoringv1.Probe {
 	probeName := fmt.Sprintf("%s-%s-%s", cluster.Name, route.Namespace, route.Name)
 
 	// Build target URL
@@ -218,7 +213,7 @@ func (r *SpokeClusterManagerReconciler) mapRouteToProbe(cluster *v1beta1.HostedC
 	}
 }
 
-func (r *SpokeClusterManagerReconciler) cleanupClusterProbes(ctx context.Context, cluster *v1beta1.HostedCluster) error {
+func (r *SpokeClusterRoutesReconciler) cleanupClusterProbes(ctx context.Context, cluster *v1beta1.HostedCluster) error {
 	// List all probes for this cluster
 	probes := &monitoringv1.ProbeList{}
 	if err := r.List(ctx, probes, client.MatchingLabels{
@@ -238,7 +233,7 @@ func (r *SpokeClusterManagerReconciler) cleanupClusterProbes(ctx context.Context
 	return nil
 }
 
-func (r *SpokeClusterManagerReconciler) getKubeConfig(hostedCluster *v1beta1.HostedCluster) (*rest.Config, error) {
+func (r *SpokeClusterRoutesReconciler) getKubeConfig(hostedCluster *v1beta1.HostedCluster) (*rest.Config, error) {
 	kubeconfigSecretName := fmt.Sprintf("%s-admin-kubeconfig", hostedCluster.Name)
 
 	secret := &v12.Secret{}
@@ -258,7 +253,7 @@ func (r *SpokeClusterManagerReconciler) getKubeConfig(hostedCluster *v1beta1.Hos
 	return clientcmd.RESTConfigFromKubeConfig(kubeconfigData)
 }
 
-func (r *SpokeClusterManagerReconciler) cleanupAllResources(ctx context.Context) error {
+func (r *SpokeClusterRoutesReconciler) cleanupAllResources(ctx context.Context) error {
 	r.log.Info("Starting cleanup of all resources")
 
 	// TODO: which namespace should hold all these Probe resources?
@@ -284,7 +279,7 @@ func (r *SpokeClusterManagerReconciler) cleanupAllResources(ctx context.Context)
 }
 
 // Add cleanup setup method
-func (r *SpokeClusterManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *SpokeClusterRoutesReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Create cleanup function
 	cleanup := func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
