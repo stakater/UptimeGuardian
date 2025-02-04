@@ -4,32 +4,24 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	route "github.com/openshift/api/route/v1"
 	"github.com/openshift/hypershift/api/hypershift/v1beta1"
 	v12 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type ClusterManager struct {
-	Manager manager.Manager
-	Cancel  context.CancelFunc
-}
-
 type SpokeClusterManagerReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Managers map[string]ClusterManager
-	log      logr.Logger
+	Scheme        *runtime.Scheme
+	RemoteClients map[string]*dynamic.DynamicClient
+	log           logr.Logger
+	manager       ctrl.Manager
 }
 
 //+kubebuilder:rbac:groups=networking.stakater.com,resources=uptimeprobes,verbs=get;list;watch;create;update;patch;delete
@@ -51,7 +43,7 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Handle the creation of a manager for the new HostedCluster
 	if hostedCluster.DeletionTimestamp.IsZero() {
 		// Create a manager for the Spoke cluster
-		err := r.createManagerForSpokeCluster(ctx, hostedCluster)
+		err := r.setupRemoteClientForSpokeCluster(ctx, hostedCluster)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -66,82 +58,33 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	return ctrl.Result{}, nil
 }
 
-func (r *SpokeClusterManagerReconciler) createManagerForSpokeCluster(ctx context.Context, hostedCluster *v1beta1.
+func (r *SpokeClusterManagerReconciler) setupRemoteClientForSpokeCluster(ctx context.Context, hostedCluster *v1beta1.
 	HostedCluster) error {
-	// Retrieve kubeconfig for the Spoke cluster
 	kubeconfig, err := r.getKubeConfig(hostedCluster)
 	if err != nil {
 		r.log.Info(fmt.Sprintf("No kubeconfig found for hosted cluster %s", hostedCluster.Name))
 		return nil
 	}
 
-	// Create a cancellable context to stop the manager later
-	ctx, cancel := context.WithCancel(ctx)
-
-	// Create the manager using the Spoke cluster's kubeconfig
-	scheme := runtime.NewScheme()
-	utilruntime.Must(route.AddToScheme(scheme))
-	mgr, err := manager.New(kubeconfig, manager.Options{
-		Scheme: scheme,
-		Metrics: server.Options{
-			BindAddress: "0",
-		},
-		HealthProbeBindAddress: "0",
-		LeaderElection:         false,
-	})
-	if err != nil {
-		cancel()
-		return err
+	if r.RemoteClients == nil {
+		r.RemoteClients = make(map[string]*dynamic.DynamicClient)
 	}
+	r.RemoteClients[hostedCluster.Name] = dynamic.NewForConfigOrDie(kubeconfig)
 
-	if err = (&SpokeRouteReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr, hostedCluster.Name); err != nil {
-		r.log.Error(err, "unable to create controller", "controller", "UptimeProbe")
-		os.Exit(1)
-	}
-
-	// Set the manager to watch the resources inside the Spoke cluster
-	err = r.setupSpokeClusterWatch(mgr, hostedCluster)
-	if err != nil {
-		cancel()
-		return err
-	}
-
-	// Store the manager and its cancel function in the registry
-	if r.Managers == nil {
-		r.Managers = make(map[string]ClusterManager)
-	}
-
-	r.Managers[hostedCluster.Name] = ClusterManager{
-		Manager: mgr,
-		Cancel:  cancel,
-	}
-
-	r.log.Info(fmt.Sprintf("added manager for hosted cluster %s", hostedCluster.Name))
-	// Start the manager in a separate Go routine
-	go func() {
-		if err := mgr.Start(ctx); err != nil {
-			r.log.Error(err, "failed to start manager for Spoke cluster", "cluster", hostedCluster.Name)
-		}
-	}()
-
-	return nil
+	spokeCtrl := SpokeRouteReconciler{}
+	return spokeCtrl.SetupWithManager(r.Client, r.RemoteClients[hostedCluster.Name], hostedCluster.Name)
 }
 
 func (r *SpokeClusterManagerReconciler) cleanupManagerForSpokeCluster(hostedCluster *v1beta1.HostedCluster) error {
-	if clusterMgr, exists := r.Managers[hostedCluster.Name]; exists {
-		clusterMgr.Cancel()
-		r.log.Info(fmt.Sprintf("removed manager for hosted cluster %s", hostedCluster.Name))
-		delete(r.Managers, hostedCluster.Name)
+	if _, exists := r.RemoteClients[hostedCluster.Name]; exists {
+		r.log.Info(fmt.Sprintf("removed remote client for hosted cluster %s", hostedCluster.Name))
+		delete(r.RemoteClients, hostedCluster.Name)
 	}
 
 	return nil
 }
 
-func (r *SpokeClusterManagerReconciler) getKubeConfig(hostedCluster *v1beta1.HostedCluster) (*rest.
-	Config,
+func (r *SpokeClusterManagerReconciler) getKubeConfig(hostedCluster *v1beta1.HostedCluster) (*rest.Config,
 	error) {
 	kubeconfigSecretName := fmt.Sprintf("%s-admin-kubeconfig", hostedCluster.Name)
 
@@ -171,13 +114,9 @@ func (r *SpokeClusterManagerReconciler) getKubeConfig(hostedCluster *v1beta1.Hos
 	return restConfig, nil
 }
 
-// Set up the watches for the Spoke cluster using the manager
-func (r *SpokeClusterManagerReconciler) setupSpokeClusterWatch(mgr manager.Manager, hostedCluster *v1beta1.HostedCluster) error {
-	return nil
-}
-
 // SetupWithManager sets up the controller with the Manager.
 func (r *SpokeClusterManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.manager = mgr
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.HostedCluster{}).
 		Complete(r)
