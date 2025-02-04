@@ -43,7 +43,7 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Handle the creation of a manager for the new HostedCluster
 	if hostedCluster.DeletionTimestamp.IsZero() {
 		// Create a manager for the Spoke cluster
-		err := r.setupRemoteClientForSpokeCluster(ctx, hostedCluster)
+		err := r.setupRemoteClientForSpokeCluster(hostedCluster)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -58,7 +58,7 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	return ctrl.Result{}, nil
 }
 
-func (r *SpokeClusterManagerReconciler) setupRemoteClientForSpokeCluster(ctx context.Context, hostedCluster *v1beta1.
+func (r *SpokeClusterManagerReconciler) setupRemoteClientForSpokeCluster(hostedCluster *v1beta1.
 	HostedCluster) error {
 	kubeconfig, err := r.getKubeConfig(hostedCluster)
 	if err != nil {
@@ -69,10 +69,21 @@ func (r *SpokeClusterManagerReconciler) setupRemoteClientForSpokeCluster(ctx con
 	if r.RemoteClients == nil {
 		r.RemoteClients = make(map[string]*dynamic.DynamicClient)
 	}
-	r.RemoteClients[hostedCluster.Name] = dynamic.NewForConfigOrDie(kubeconfig)
 
-	spokeCtrl := SpokeRouteReconciler{}
-	return spokeCtrl.SetupWithManager(r.Client, r.RemoteClients[hostedCluster.Name], hostedCluster.Name)
+	if _, ok := r.RemoteClients[hostedCluster.Name]; !ok {
+		r.RemoteClients[hostedCluster.Name] = dynamic.NewForConfigOrDie(kubeconfig)
+	}
+
+	if err = (&SpokeRouteReconciler{
+		Client:       r.Client,
+		RemoteClient: r.RemoteClients[hostedCluster.Name],
+		Scheme:       r.Scheme,
+		Name:         hostedCluster.Name,
+	}).SetupWithManager(r.manager); err != nil {
+		r.log.Error(err, "unable to create controller", "controller", "SpokeClusterManager")
+	}
+
+	return nil
 }
 
 func (r *SpokeClusterManagerReconciler) cleanupManagerForSpokeCluster(hostedCluster *v1beta1.HostedCluster) error {
