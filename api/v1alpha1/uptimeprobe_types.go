@@ -22,6 +22,7 @@ import (
 
 // UptimeProbeSpec defines the desired state of UptimeProbe
 type UptimeProbeSpec struct {
+	LabelSelector metav1.LabelSelector `json:"labelSelector"`
 }
 
 // UptimeProbeStatus defines the observed state of UptimeProbe

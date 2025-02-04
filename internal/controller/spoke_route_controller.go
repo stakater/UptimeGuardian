@@ -4,12 +4,14 @@ import (
 	"context"
 	"github.com/go-logr/logr"
 	"github.com/stakater/UptimeGuardian/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -79,14 +81,28 @@ func (r *SpokeRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WatchesRawSource(&source.Informer{
 			Informer: informer,
 			Handler: handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, object client.Object) []reconcile.Request {
-				// Find all UptimeProbes
-				// Return reconcile request for each
-				return []reconcile.Request{{
-					NamespacedName: types.NamespacedName{
-						Namespace: object.GetNamespace(),
-						Name:      object.GetName(),
-					},
-				}}
+				var requests []reconcile.Request
+				uptimeProbes := &v1alpha1.UptimeProbeList{}
+				err := r.List(ctx, uptimeProbes, client.InNamespace(cache.AllNamespaces))
+				if err != nil {
+					return requests
+				}
+
+				for _, probe := range uptimeProbes.Items {
+					selector := labels.SelectorFromSet(probe.Spec.LabelSelector.MatchLabels)
+					if !selector.Matches(labels.Set(object.GetLabels())) {
+						continue
+					}
+
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Namespace: probe.Namespace,
+							Name:      probe.Name,
+						},
+					})
+				}
+
+				return requests
 			}),
 		}).
 		Complete(r)
