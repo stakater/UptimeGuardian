@@ -16,10 +16,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+type SpokeManager struct {
+	*dynamic.DynamicClient
+	stopInformerChan chan struct{}
+}
+
 type SpokeClusterManagerReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
-	RemoteClients map[string]*dynamic.DynamicClient
+	RemoteClients map[string]SpokeManager
 	log           logr.Logger
 	manager       ctrl.Manager
 }
@@ -35,7 +40,7 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Retrieve the HostedCluster (Spoke cluster)
 	hostedCluster := &v1beta1.HostedCluster{}
-	err := r.Get(context.TODO(), req.NamespacedName, hostedCluster)
+	err := r.Get(ctx, req.NamespacedName, hostedCluster)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -67,28 +72,31 @@ func (r *SpokeClusterManagerReconciler) setupRemoteClientForSpokeCluster(hostedC
 	}
 
 	if r.RemoteClients == nil {
-		r.RemoteClients = make(map[string]*dynamic.DynamicClient)
+		r.RemoteClients = make(map[string]SpokeManager)
 	}
 
-	if _, ok := r.RemoteClients[hostedCluster.Name]; !ok {
-		r.RemoteClients[hostedCluster.Name] = dynamic.NewForConfigOrDie(kubeconfig)
+	if _, ok := r.RemoteClients[hostedCluster.Name]; ok {
+		return nil
 	}
 
-	if err = (&SpokeRouteReconciler{
+	r.RemoteClients[hostedCluster.Name] = SpokeManager{
+		DynamicClient:    dynamic.NewForConfigOrDie(kubeconfig),
+		stopInformerChan: make(chan struct{}),
+	}
+
+	return (&SpokeRouteReconciler{
 		Client:       r.Client,
-		RemoteClient: r.RemoteClients[hostedCluster.Name],
+		RemoteClient: r.RemoteClients[hostedCluster.Name].DynamicClient,
 		Scheme:       r.Scheme,
 		Name:         hostedCluster.Name,
-	}).SetupWithManager(r.manager); err != nil {
-		r.log.Error(err, "unable to create controller", "controller", "SpokeClusterManager")
-	}
-
-	return nil
+		Stop:         r.RemoteClients[hostedCluster.Name].stopInformerChan,
+	}).SetupWithManager(r.manager)
 }
 
 func (r *SpokeClusterManagerReconciler) cleanupManagerForSpokeCluster(hostedCluster *v1beta1.HostedCluster) error {
-	if _, exists := r.RemoteClients[hostedCluster.Name]; exists {
+	if sp, exists := r.RemoteClients[hostedCluster.Name]; exists {
 		r.log.Info(fmt.Sprintf("removed remote client for hosted cluster %s", hostedCluster.Name))
+		close(sp.stopInformerChan)
 		delete(r.RemoteClients, hostedCluster.Name)
 	}
 

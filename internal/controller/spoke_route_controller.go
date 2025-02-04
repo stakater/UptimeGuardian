@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	route "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"time"
 )
@@ -26,6 +26,7 @@ type SpokeRouteReconciler struct {
 	Scheme       *runtime.Scheme
 	Name         string
 	RemoteClient *dynamic.DynamicClient
+	Stop         chan struct{}
 	logger       logr.Logger
 }
 
@@ -54,7 +55,8 @@ func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (r *SpokeRouteReconciler) getInformer() cache.SharedIndexInformer {
+// SetupWithManager sets up the controller with the Manager.
+func (r *SpokeRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	routeGVR := schema.GroupVersionResource{
 		Group:    "route.openshift.io",
 		Version:  "v1",
@@ -62,17 +64,22 @@ func (r *SpokeRouteReconciler) getInformer() cache.SharedIndexInformer {
 	}
 
 	factory := dynamicinformer.NewDynamicSharedInformerFactory(r.RemoteClient, 30*time.Second)
-	return factory.ForResource(routeGVR).Informer()
-}
+	informer := factory.ForResource(routeGVR).Informer()
+	factory.WaitForCacheSync(r.Stop)
+	factory.Start(r.Stop)
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *SpokeRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(r.Name).
-		Watches(&route.Route{}, &handler.EnqueueRequestForObject{}).
 		WatchesRawSource(&source.Informer{
-			Informer: r.getInformer(),
-			Handler:  &handler.EnqueueRequestForObject{},
+			Informer: informer,
+			Handler: handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, object client.Object) []reconcile.Request {
+				return []reconcile.Request{{
+					NamespacedName: types.NamespacedName{
+						Namespace: object.GetNamespace(),
+						Name:      object.GetName(),
+					},
+				}}
+			}),
 		}).
 		Complete(r)
 }
