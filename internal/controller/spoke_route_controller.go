@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	v1 "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,17 +34,24 @@ func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	r.logger = log.FromContext(ctx).WithName(r.name)
 	r.logger.Info("Reconciling SpokeRoute")
 
-	route := &v1.Route{}
-	err := r.Get(ctx, req.NamespacedName, route)
+	routeGVR := schema.GroupVersionResource{
+		Group:    "route.openshift.io",
+		Version:  "v1",
+		Resource: "routes",
+	}
+
+	// Get the remote Route
+	route, err := r.remoteClient.Resource(routeGVR).Namespace(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 
+		r.logger.Info("Failed to get remote Route: %v", err)
 		return ctrl.Result{}, err
 	}
 
-	r.logger.Info(fmt.Sprintf("%v", route))
+	r.logger.Info(fmt.Sprintf("%v", route.GetName()))
 	return ctrl.Result{}, nil
 }
 
