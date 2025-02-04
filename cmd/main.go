@@ -19,8 +19,9 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	route "github.com/openshift/api/route/v1"
 	"os"
+
+	route "github.com/openshift/api/route/v1"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -35,8 +36,10 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
 	"github.com/stakater/UptimeGuardian/internal/controller"
+
 	//+kubebuilder:scaffold:imports
 
 	hostedCluster "github.com/openshift/hypershift/api/hypershift/v1beta1"
@@ -52,6 +55,7 @@ func init() {
 	utilruntime.Must(hostedCluster.AddToScheme(scheme))
 	utilruntime.Must(route.AddToScheme(scheme))
 	utilruntime.Must(networkingv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
