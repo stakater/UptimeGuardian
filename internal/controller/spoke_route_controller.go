@@ -2,10 +2,8 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/stakater/UptimeGuardian/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,24 +32,31 @@ func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	r.logger = log.FromContext(ctx).WithName(r.Name)
 	r.logger.Info("Reconciling SpokeRoute")
 
-	routeGVR := schema.GroupVersionResource{
-		Group:    "route.openshift.io",
-		Version:  "v1",
-		Resource: "routes",
-	}
+	// Merge with UptimeProbeController
 
-	// Get the remote Route
-	route, err := r.RemoteClient.Resource(routeGVR).Namespace(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
+	// 1. Get the UptimeProbe CR with local client
+	// 2. Get all routes matching labels
+	// 3. Create/Update all Probes
 
-		r.logger.Info("Failed to get remote Route: %v", err)
-		return ctrl.Result{}, err
-	}
+	//routeGVR := schema.GroupVersionResource{
+	//	Group:    "route.openshift.io",
+	//	Version:  "v1",
+	//	Resource: "routes",
+	//}
+	//
+	//// Get the remote Route
+	//route, err := r.RemoteClient.Resource(routeGVR).Namespace(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
+	//if err != nil {
+	//	if errors.IsNotFound(err) {
+	//		return ctrl.Result{}, nil
+	//	}
+	//
+	//	r.logger.Info("Failed to get remote Route: %v", err)
+	//	return ctrl.Result{}, err
+	//}
+	//
+	//r.logger.Info(fmt.Sprintf("%v", route.GetName()))
 
-	r.logger.Info(fmt.Sprintf("%v", route.GetName()))
 	return ctrl.Result{}, nil
 }
 
@@ -70,9 +75,12 @@ func (r *SpokeRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(r.Name).
+		For(&v1alpha1.UptimeProbe{}).
 		WatchesRawSource(&source.Informer{
 			Informer: informer,
 			Handler: handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, object client.Object) []reconcile.Request {
+				// Find all UptimeProbes
+				// Return reconcile request for each
 				return []reconcile.Request{{
 					NamespacedName: types.NamespacedName{
 						Namespace: object.GetNamespace(),
