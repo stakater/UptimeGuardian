@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	"github.com/openshift/hypershift/api/hypershift/v1beta1"
 	v12 "k8s.io/api/core/v1"
@@ -17,7 +18,7 @@ import (
 )
 
 type SpokeManager struct {
-	*dynamic.DynamicClient
+	dynamic.Interface
 	stopInformerChan chan struct{}
 }
 
@@ -68,6 +69,10 @@ func (r *SpokeClusterManagerReconciler) setupRemoteClientForSpokeCluster(hostedC
 	kubeconfig, err := r.getKubeConfig(hostedCluster)
 	if err != nil {
 		r.log.Info(fmt.Sprintf("No kubeconfig found for hosted cluster %s", hostedCluster.Name))
+		err = r.cleanupManagerForSpokeCluster(hostedCluster)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -80,13 +85,13 @@ func (r *SpokeClusterManagerReconciler) setupRemoteClientForSpokeCluster(hostedC
 	}
 
 	r.RemoteClients[hostedCluster.Name] = SpokeManager{
-		DynamicClient:    dynamic.NewForConfigOrDie(kubeconfig),
+		Interface:        dynamic.NewForConfigOrDie(kubeconfig),
 		stopInformerChan: make(chan struct{}),
 	}
 
 	return (&SpokeRouteReconciler{
 		Client:       r.Client,
-		RemoteClient: r.RemoteClients[hostedCluster.Name].DynamicClient,
+		RemoteClient: r.RemoteClients[hostedCluster.Name].Interface,
 		Scheme:       r.Scheme,
 		Name:         hostedCluster.Name,
 		Stop:         r.RemoteClients[hostedCluster.Name].stopInformerChan,
@@ -103,8 +108,7 @@ func (r *SpokeClusterManagerReconciler) cleanupManagerForSpokeCluster(hostedClus
 	return nil
 }
 
-func (r *SpokeClusterManagerReconciler) getKubeConfig(hostedCluster *v1beta1.HostedCluster) (*rest.Config,
-	error) {
+func (r *SpokeClusterManagerReconciler) getKubeConfig(hostedCluster *v1beta1.HostedCluster) (*rest.Config, error) {
 	kubeconfigSecretName := fmt.Sprintf("%s-admin-kubeconfig", hostedCluster.Name)
 
 	// Retrieve the secret containing the kubeconfig
@@ -123,14 +127,11 @@ func (r *SpokeClusterManagerReconciler) getKubeConfig(hostedCluster *v1beta1.Hos
 		return nil, fmt.Errorf("kubeconfig data not found in secret %s", kubeconfigSecretName)
 	}
 
-	// Decode the kubeconfig (it's typically base64 encoded in the secret)
-	kubeconfig := string(kubeconfigData)
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeconfig))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create rest.Config from kubeconfig for HostedCluster %s: %v", hostedCluster.Name, err)
-	}
+	return getRestConfig(kubeconfigData)
+}
 
-	return restConfig, nil
+var getRestConfig = func(kubeconfigData []byte) (*rest.Config, error) {
+	return clientcmd.RESTConfigFromKubeConfig(kubeconfigData)
 }
 
 // SetupWithManager sets up the controller with the Manager.
