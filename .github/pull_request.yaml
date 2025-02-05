@@ -1,0 +1,30 @@
+name: Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release
+    paths-ignore:
+      - '*.md'
+      - 'docs/'
+      - 'examples/'
+      - 'hack/'
+
+jobs:
+  operator-pull-request:
+    name: Operator Pull Request
+    uses: stakater/.github/.github/workflows/operator_pull_request.yaml@main
+    secrets:
+      CONTAINER_REGISTRY_URL: ghcr.io/stakater
+      CONTAINER_REGISTRY_USERNAME: stakater-user
+      CONTAINER_REGISTRY_PASSWORD: ${{ secrets.GHCR_TOKEN }}
+      SLACK_WEBHOOK_URL: ${{ secrets.STAKATER_DELIVERY_SLACK_WEBHOOK }}
+    with:
+      GOLANG_VERSION: ~1.23
+      DOCKERFILE_PATH: Dockerfile
+      GOLANG_CI_LINT_VERSION: v1.57.2
+      Run_GOLANG_CI_LINT: false
+      BUILD_CUSTOM_CATALOG: true
+      RUN_GOLANG_TESTS: true
+      OPERATOR_SDK_VERSION: v1.36.1
