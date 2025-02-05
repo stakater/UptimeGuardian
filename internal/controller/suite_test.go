@@ -33,7 +33,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	route "github.com/openshift/api/route/v1"
 	hostedCluster "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
 	//+kubebuilder:scaffold:imports
@@ -79,9 +78,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	err = hostedCluster.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = route.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = monitoringv1.AddToScheme(scheme.Scheme)
