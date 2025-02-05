@@ -34,8 +34,10 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
 	"github.com/stakater/UptimeGuardian/internal/controller"
+
 	//+kubebuilder:scaffold:imports
 
 	hostedCluster "github.com/openshift/hypershift/api/hypershift/v1beta1"
@@ -50,6 +52,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(hostedCluster.AddToScheme(scheme))
 	utilruntime.Must(networkingv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
