@@ -24,8 +24,8 @@ jobs:
     with:
       GOLANG_VERSION: ~1.23
       RUN_GOLANG_CI_LINT: false
-      RUN_GOLANG_TESTS: false
+      RUN_GOLANG_TESTS: true
       DOCKERFILE_PATH: Dockerfile
       RELEASE_BRANCH: main
-      BUILD_CUSTOM_CATALOG: false
+      BUILD_CUSTOM_CATALOG: true
       OPERATOR_SDK_VERSION: v1.36.1
