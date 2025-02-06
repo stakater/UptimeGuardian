@@ -27,5 +27,5 @@ jobs:
       RUN_GOLANG_TESTS: true
       DOCKERFILE_PATH: Dockerfile
       RELEASE_BRANCH: main
-      BUILD_CUSTOM_CATALOG: true
+      BUILD_FILE_BASED_CATALOG: true
       OPERATOR_SDK_VERSION: v1.36.1

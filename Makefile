@@ -312,6 +312,13 @@ endif
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
+
+# Render bundle to the catalog index.
+.PHONY: catalog-render
+publish: ## Build and publish operator.
+	$(OPM) render $(BUNDLE_IMG) --output=yaml >> catalog/index.yaml
+	$(OPM) validate catalog
+
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
 	$(CONTAINER_TOOL) build -f catalog.Dockerfile -t $(CATALOG_IMG) .
@@ -328,7 +335,5 @@ publish: ## Build and publish operator.
 	$(MAKE) manifests build docker-build docker-push
 	rm -f bin/kustomize
 	$(MAKE) bundle bundle-build bundle-push
-	$(OPM) render $(BUNDLE_IMG) --output=yaml >> catalog/index.yaml
-	$(OPM) validate catalog
-	$(MAKE) catalog-build catalog-push
+	$(MAKE) catalog-render catalog-build catalog-push
 	
