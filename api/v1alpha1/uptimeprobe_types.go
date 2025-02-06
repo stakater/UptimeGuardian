@@ -17,11 +17,25 @@ limitations under the License.
 package v1alpha1
 
 import (
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // UptimeProbeSpec defines the desired state of UptimeProbe
 type UptimeProbeSpec struct {
+	LabelSelector metav1.LabelSelector `json:"labelSelector"`
+	ProbeConfig   ProbeConfig          `json:"probeConfig"`
+}
+
+type ProbeConfig struct {
+	JobName         string                `json:"jobName"`
+	Interval        monitoringv1.Duration `json:"interval"`
+	Module          string                `json:"module"`
+	ScrapeTimeout   monitoringv1.Duration `json:"scrapeTimeout"`
+	ProberUrl       string                `json:"proberUrl"`
+	ProberScheme    string                `json:"proberScheme"`
+	ProberPath      string                `json:"proberPath"`
+	TargetNamespace string                `json:"targetNamespace"` // namespace of the target route. Immutable for Patch
 }
 
 // UptimeProbeStatus defines the observed state of UptimeProbe
