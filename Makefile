@@ -315,7 +315,7 @@ endif
 
 # Render bundle to the catalog index.
 .PHONY: catalog-render
-publish: ## Build and publish operator.
+catalog-render: ## Build and publish operator.
 	$(OPM) render $(BUNDLE_IMG) --output=yaml >> catalog/index.yaml
 	$(OPM) validate catalog
 
