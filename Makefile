@@ -28,7 +28,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# stakater.com/uptimeguardian-operator-bundle:$VERSION and stakater.com/uptimeguardian-operator-catalog:$VERSION.-operator
+# stakater.com/uptimeguardian-bundle:$VERSION and stakater.com/uptimeguardian-catalog:$VERSION.-operator
 IMAGE_TAG_BASE ?= ghcr.io/stakater/uptimeguardian
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
@@ -51,11 +51,6 @@ endif
 OPERATOR_SDK_VERSION ?= v1.36.1
 # Image URL to use all building/pushing image targets
 IMG ?= $(IMAGE_TAG_BASE):v$(VERSION)
-
-# CUSTOM_CATALOG_IMG defines the image:tag used for the custom catalog image.
-# Using digest becase it's easier to extract digest from the build_and_push action in github actions.
-CUSTOM_CATALOG_IMG ?= $(IMAGE_TAG_BASE)@$(IMAGE_DIGEST)
-
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.29.0
 
@@ -276,9 +271,6 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(OPERATOR_SDK) bundle validate ./bundle
-
-.PHONY: custom-bundle
-custom-bundle: bundle
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
