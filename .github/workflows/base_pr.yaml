@@ -32,12 +32,6 @@ on:
         required: true
         type: string
 
-      BUILD_CUSTOM_CATALOG:
-        description: Build custom catalog
-        default: false
-        required: false
-        type: boolean
-
       OPERATOR_SDK_VERSION:
         description: Operator SDK version to use
         default: "v1.32.0"
@@ -165,7 +159,6 @@ jobs:
         echo "GIT_TAG=$(echo ${tag})" >> $GITHUB_OUTPUT
 
     - name: Install CLI tools from OpenShift Mirror
-      if: ${{ inputs.BUILD_CUSTOM_CATALOG }}
       uses: redhat-actions/openshift-tools-installer@v1
       with:
         source: "github"
@@ -173,10 +166,8 @@ jobs:
         opm: ${{ inputs.OPM_VERSION }}
 
     - name: Build and Push Bundle
-      if: ${{ inputs.BUILD_CUSTOM_CATALOG }}
       run: make bundle bundle-build bundle-push
       env:
-        IMAGE_DIGEST: ${{ steps.build_and_push.outputs.digest }}
         PR_TAG: -${{ steps.generate_tag_for_catalog.outputs.GIT_TAG }}
 
     - name: Comment on PR
