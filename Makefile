@@ -4,6 +4,9 @@
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 0.0.1
+OPERATOR_NAME ?= uptimeguardian
+CATALOG_DIR_PATH ?= catalog
+DOCKER_REPO_BASE ?= ghcr.io/stakater
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -29,7 +32,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # stakater.com/uptimeguardian-bundle:$VERSION and stakater.com/uptimeguardian-catalog:$VERSION.-operator
-IMAGE_TAG_BASE ?= ghcr.io/stakater/uptimeguardian
+IMAGE_TAG_BASE ?= $(DOCKER_REPO_BASE)/$(OPERATOR_NAME)
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -297,6 +300,24 @@ OPM = $(shell which opm)
 endif
 endif
 
+.PHONY: yq
+YQ_VERSION := v4.13.0
+YQ_BIN := $(LOCALBIN)/yq
+yq:
+ifeq (,$(wildcard $(YQ_BIN)))
+ifeq (,$(shell which yq 2>/dev/null))
+	@{ \
+	set -e ;\
+	mkdir -p $(dir $(YQ_BIN)) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	curl -sSLo $(YQ_BIN) https://github.com/mikefarah/yq/releases/download/$(YQ_VERSION)/yq_$${OS}-$${ARCH} ;\
+	chmod +x $(YQ_BIN) ;\
+	}
+else
+YQ_BIN = $(shell which yq)
+endif
+endif
+
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
@@ -315,10 +336,8 @@ endif
 
 # Render bundle to the catalog index.
 .PHONY: catalog-render
-catalog-render: opm ## Render bundle to catalog index.
-	$(OPM) render $(BUNDLE_IMG) --output=yaml >> catalog/index.yaml
-	$(OPM) validate catalog
-
+catalog-render: opm yq ## Render bundle to catalog index.
+	sh generate-catalog-index.sh $(DOCKER_REPO_BASE) $(OPERATOR_NAME) $(CATALOG_DIR_PATH)
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
 	$(CONTAINER_TOOL) build -f catalog.Dockerfile -t $(CATALOG_IMG) .
