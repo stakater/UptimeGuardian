@@ -29,7 +29,7 @@ on:
 
       DOCKERFILE_PATH:
         description: Dockerfile path
-        required: true
+        required: false
         default: Dockerfile
         type: string
 
