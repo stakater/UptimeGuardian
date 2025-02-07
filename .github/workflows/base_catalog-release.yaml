@@ -1,4 +1,4 @@
-name: Operator Push
+name: Operator catalog release
 
 on:
   workflow_call:
@@ -209,6 +209,23 @@ jobs:
         run: make bundle bundle-build bundle-push
         env:
           VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
+
+      # Commit back changes
+      - name: Commit files
+        run: |
+          git config --local user.email "${{ inputs.BOT_EMAIL }}"
+          git config --local user.name "${{ inputs.BOT_USERNAME }}"
+          git status
+          git add .
+          
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            echo "commit_made=false" >> $GITHUB_ENV
+            exit 0
+          fi
+          
+          git commit -m "[skip-ci] Update artifacts" -a
+          echo "commit_made=true" >> $GITHUB_ENV
 
       - name: Push changes
         if: ${{ env.commit_made == 'true' }}
