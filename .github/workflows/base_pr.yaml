@@ -168,6 +168,7 @@ jobs:
     - name: Build and Push Bundle
       run: make bundle bundle-build bundle-push
       env:
+        IMAGE_DIGEST: ${{ steps.build_and_push.outputs.digest }}
         PR_TAG: -${{ steps.generate_tag_for_catalog.outputs.GIT_TAG }}
 
     - name: Comment on PR
