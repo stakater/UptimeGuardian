@@ -168,7 +168,7 @@ jobs:
       - name: Build and Push Bundle
         run: make bundle bundle-build bundle-push
         env:
-          PR_TAG: -${{ steps.generate_tag_for_catalog.outputs.GIT_TAG }}
+          PR_TAG: -${{ steps.generate_tag.outputs.GIT_TAG }}
 
       - name: Comment on PR
         uses: mshick/add-pr-comment@v2
