@@ -8,8 +8,10 @@ PR_TAG=$5
 
 # Get entries and iterate
 CHANNEL_BUNDLES=$(yq eval-all 'select(.schema == "olm.channel") | .entries[].name' "$CATALOG_DIR_PATH"/channels.yaml | grep -v '^---$' | sort | uniq)
-# Render all required bundles
+
+# Clean up files
 rm -rf "$CATALOG_DIR_PATH"/bundles.yaml
+rm -rf "$CATALOG_DIR_PATH"/release/index.yaml
 
 echo " catalog build start"
 SHOULD_RELEASE="false"
@@ -36,6 +38,7 @@ done
 
 # Build catalog index if there should be a release
   if [ ${SHOULD_RELEASE} = "true" ]; then
+      mkdir -p "$CATALOG_DIR_PATH"/release
       yq eval-all '.' "$CATALOG_DIR_PATH"/package.yaml "$CATALOG_DIR_PATH"/channels.yaml "$CATALOG_DIR_PATH"/bundles.yaml > "$CATALOG_DIR_PATH"/release/index.yaml
       echo "  >> created index >> $CATALOG_DIR_PATH/release/index.yaml"
   else
