@@ -1,3 +1,5 @@
+#!/bin/bash
+
 DOCKER_REPO=$1
 OPERATOR_NAME=$2
 CATALOG_DIR_PATH=$3
