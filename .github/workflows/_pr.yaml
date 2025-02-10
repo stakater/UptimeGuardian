@@ -150,15 +150,6 @@ jobs:
             org.opencontainers.image.source=${{ github.event.repository.clone_url }}
             org.opencontainers.image.revision=${{ github.sha }}
 
-      # Build custom catalog
-      - name: Generate Tag
-        if: ${{ inputs.BUILD_CUSTOM_CATALOG }}
-        id: generate_tag_for_catalog
-        run: |
-          sha=${{ github.event.pull_request.head.sha }}
-          tag="${sha:0:8}"
-          echo "GIT_TAG=$(echo ${tag})" >> $GITHUB_OUTPUT
-
       - name: Install CLI tools from OpenShift Mirror
         uses: redhat-actions/openshift-tools-installer@v1
         with:
@@ -168,6 +159,11 @@ jobs:
 
       - name: Build and Push Bundle
         run: make bundle bundle-build bundle-push
+        env:
+          PR_TAG: -${{ steps.generate_tag.outputs.GIT_TAG }}
+
+      - name: Build and Push Catalog
+        run: make catalog-render catalog-build catalog-push
         env:
           PR_TAG: -${{ steps.generate_tag.outputs.GIT_TAG }}
 
