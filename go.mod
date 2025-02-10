@@ -6,7 +6,7 @@ toolchain go1.23.5
 
 require (
 	github.com/go-logr/logr v1.4.2
-	github.com/onsi/ginkgo/v2 v2.22.1
+	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
 	github.com/openshift/hypershift/api v0.0.0-20250206165713-5fa2b283ad93
 	k8s.io/api v0.32.1
