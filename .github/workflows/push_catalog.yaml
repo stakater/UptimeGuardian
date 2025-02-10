@@ -12,7 +12,7 @@ jobs:
     name: Push Operator
     if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
 #    uses: stakater/.github/.github/workflows/operator_push.yaml@main
-    uses: stakater/UptimeGuardian/.github/workflows/base_catalog_release.yaml@main
+    uses: stakater/UptimeGuardian/.github/workflows/_catalog.yaml@main
     secrets:
       ADMIN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.STAKATER_DELIVERY_SLACK_WEBHOOK }}

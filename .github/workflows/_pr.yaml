@@ -30,6 +30,7 @@ on:
       DOCKERFILE_PATH:
         description: Dockerfile path
         required: true
+        default: Dockerfile
         type: string
 
       OPERATOR_SDK_VERSION:
