@@ -210,6 +210,11 @@ jobs:
         env:
           VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
 
+      - name: Build and Push Catalog
+        run: make catalog-render catalog-build catalog-push
+        env:
+          VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
+
       # Commit back changes
       - name: Commit files
         run: |
