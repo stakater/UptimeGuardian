@@ -217,24 +217,6 @@ jobs:
           github_token: ${{ secrets.ADMIN_TOKEN }}
           branch: ${{ inputs.RELEASE_BRANCH }}
 
-      - name: Push Latest Tag
-        uses: anothrNick/github-tag-action@1.71.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-          WITH_V: true
-          RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
-          DEFAULT_BUMP: patch
-
-      - name: Comment on PR
-        uses: mshick/add-pr-comment@v2
-        if: always()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          message-success: '@${{ github.actor }} Image is available for testing. `docker pull ${{ env.CONTAINER_IMAGE_REPOSITORY }}:${{ needs.push-operator-setup.outputs.new_tag }}`'
-          message-failure: '@${{ github.actor }} Yikes! You better fix it before anyone else finds out! [Build](https://github.com/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }}/checks) has Failed!'
-          allow-repeats: true
-
       - name: Notify Slack
         uses: 8398a7/action-slack@v3
         if: always() # Pick up events even if the job fails or is canceled.
