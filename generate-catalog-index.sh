@@ -13,6 +13,7 @@ echo " catalog build start"
 SHOULD_RELEASE="false"
 for item in $CHANNEL_BUNDLES; do
   # Setup bundle from entries
+  echo "--> $item, $OPERATOR_NAME, $VERSION"
   if [ -n "$PR_TAG" ]; then
       bundle="${item//${OPERATOR_NAME}./${OPERATOR_NAME}-bundle:}${PR_TAG}"
       release="${OPERATOR_NAME}-bundle:v${VERSION}${PR_TAG}"
@@ -40,7 +41,7 @@ done
       echo "  >> release is not defined in ${CATALOG_DIR_PATH}/channels.yaml, will not create catalog index"
   fi
 
-rm -rf "$CATALOG_DIR_PATH"/bundles.yaml
+#rm -rf "$CATALOG_DIR_PATH"/bundles.yaml
 echo " catalog build done!"
 
 ## Delete entries
