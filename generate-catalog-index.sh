@@ -13,7 +13,6 @@ echo " catalog build start"
 SHOULD_RELEASE="false"
 for item in $CHANNEL_BUNDLES; do
   # Setup bundle from entries
-  echo "--> $item, $OPERATOR_NAME, $VERSION"
   if [ -n "$PR_TAG" ]; then
       bundle="${item//${OPERATOR_NAME}./${OPERATOR_NAME}-bundle:}${PR_TAG}"
       release="${OPERATOR_NAME}-bundle:v${VERSION}${PR_TAG}"
