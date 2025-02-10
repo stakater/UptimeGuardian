@@ -337,7 +337,7 @@ endif
 # Render bundle to the catalog index.
 .PHONY: catalog-render
 catalog-render: opm yq ## Render bundle to catalog index.
-	sh generate-catalog-index.sh $(DOCKER_REPO_BASE) $(OPERATOR_NAME) $(CATALOG_DIR_PATH)
+	sh generate-catalog-index.sh $(DOCKER_REPO_BASE) $(OPERATOR_NAME) $(CATALOG_DIR_PATH) $(VERSION) $(PR_TAG)
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
 	$(CONTAINER_TOOL) build -f catalog.Dockerfile -t $(CATALOG_IMG) .
