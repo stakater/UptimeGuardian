@@ -67,125 +67,124 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Check if registry secrets are set
-      run: |
-        if [ "${{ secrets.CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
-          echo "Required Secrets 'CONTAINER_REGISTRY_URL' or 'CONTAINER_REGISTRY_USERNAME' or 'CONTAINER_REGISTRY_PASSWORD' are not set!"
-          exit 1
-        fi
+      - name: Check if registry secrets are set
+        run: |
+          if [ "${{ secrets.CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
+            echo "Required Secrets 'CONTAINER_REGISTRY_URL' or 'CONTAINER_REGISTRY_USERNAME' or 'CONTAINER_REGISTRY_PASSWORD' are not set!"
+            exit 1
+          fi
 
-    - name: Check if slack secret is set
-      run: |
-        if [ "${{ secrets.SLACK_WEBHOOK_URL }}" == "" ]; then
-          echo "Required Secret 'SLACK_WEBHOOK_URL' is not set!"
-          exit 1
-        fi
+      - name: Check if slack secret is set
+        run: |
+          if [ "${{ secrets.SLACK_WEBHOOK_URL }}" == "" ]; then
+            echo "Required Secret 'SLACK_WEBHOOK_URL' is not set!"
+            exit 1
+          fi
 
-    - name: Set up Go
-      id: go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ inputs.GOLANG_VERSION }}
+      - name: Set up Go
+        id: go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.GOLANG_VERSION }}
 
-    - name: Lint
-      if: ${{ inputs.Run_GOLANG_CI_LINT }}
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: ${{ inputs.GOLANG_CI_LINT_VERSION }}
-        only-new-issues: false
-        args: --timeout 10m
-        skip-pkg-cache: true
+      - name: Lint
+        if: ${{ inputs.Run_GOLANG_CI_LINT }}
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ inputs.GOLANG_CI_LINT_VERSION }}
+          only-new-issues: false
+          args: --timeout 10m
+          skip-pkg-cache: true
 
-    # Run Tests
-    - name: Test
-      if: ${{ inputs.RUN_GOLANG_TESTS }}
-      run: make test
+      # Run Tests
+      - name: Test
+        if: ${{ inputs.RUN_GOLANG_TESTS }}
+        run: make test
 
-    - name: Generate Tag
-      id: generate_tag
-      run: |
-        sha=${{ github.event.pull_request.head.sha }}
-        tag="SNAPSHOT-PR-${{ github.event.pull_request.number }}-${sha:0:8}"
-        echo "GIT_TAG=$(echo ${tag})" >> $GITHUB_OUTPUT
+      - name: Generate Tag
+        id: generate_tag
+        run: |
+          sha=${{ github.event.pull_request.head.sha }}
+          tag="SNAPSHOT-PR-${{ github.event.pull_request.number }}-${sha:0:8}"
+          echo "GIT_TAG=$(echo ${tag})" >> $GITHUB_OUTPUT
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      with:
-        driver-opts: |
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
             image=moby/buildkit:v0.9.3
-        buildkitd-flags: --debug
+          buildkitd-flags: --debug
 
-    - name: Login to Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ secrets.CONTAINER_REGISTRY_URL }}
-        username: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
-        password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+      - name: Login to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CONTAINER_REGISTRY_URL }}
+          username: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
+          password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
 
-    - name: Generate image repository path
-      run: |
-        echo IMAGE_REPOSITORY=$(echo ${{ secrets.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+      - name: Generate image repository path
+        run: |
+          echo IMAGE_REPOSITORY=$(echo ${{ secrets.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
 
-    - name: Build and push
-      uses: docker/build-push-action@v6
-      id: build_and_push
-      with:
-        context: .
-        file: ${{ inputs.DOCKERFILE_PATH  }}
-        pull: true
-        push: true
-        cache-to: type=inline
-        tags: |
-          ${{ env.IMAGE_REPOSITORY }}:${{ steps.generate_tag.outputs.GIT_TAG }}
-        labels: |
-          org.opencontainers.image.source=${{ github.event.repository.clone_url }}
-          org.opencontainers.image.revision=${{ github.sha }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        id: build_and_push
+        with:
+          context: .
+          file: ${{ inputs.DOCKERFILE_PATH  }}
+          pull: true
+          push: true
+          cache-to: type=inline
+          tags: |
+            ${{ env.IMAGE_REPOSITORY }}:${{ steps.generate_tag.outputs.GIT_TAG }}
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
-    # Build custom catalog
-    - name: Generate Tag
-      if: ${{ inputs.BUILD_CUSTOM_CATALOG }}
-      id: generate_tag_for_catalog
-      run: |
-        sha=${{ github.event.pull_request.head.sha }}
-        tag="${sha:0:8}"
-        echo "GIT_TAG=$(echo ${tag})" >> $GITHUB_OUTPUT
+      # Build custom catalog
+      - name: Generate Tag
+        if: ${{ inputs.BUILD_CUSTOM_CATALOG }}
+        id: generate_tag_for_catalog
+        run: |
+          sha=${{ github.event.pull_request.head.sha }}
+          tag="${sha:0:8}"
+          echo "GIT_TAG=$(echo ${tag})" >> $GITHUB_OUTPUT
 
-    - name: Install CLI tools from OpenShift Mirror
-      uses: redhat-actions/openshift-tools-installer@v1
-      with:
-        source: "github"
-        operator-sdk: ${{ inputs.OPERATOR_SDK_VERSION }}
-        opm: ${{ inputs.OPM_VERSION }}
+      - name: Install CLI tools from OpenShift Mirror
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          source: "github"
+          operator-sdk: ${{ inputs.OPERATOR_SDK_VERSION }}
+          opm: ${{ inputs.OPM_VERSION }}
 
-    - name: Build and Push Bundle
-      run: make bundle bundle-build bundle-push
-      env:
-        IMAGE_DIGEST: ${{ steps.build_and_push.outputs.digest }}
-        PR_TAG: -${{ steps.generate_tag_for_catalog.outputs.GIT_TAG }}
+      - name: Build and Push Bundle
+        run: make bundle bundle-build bundle-push
+        env:
+          PR_TAG: -${{ steps.generate_tag_for_catalog.outputs.GIT_TAG }}
 
-    - name: Comment on PR
-      uses: mshick/add-pr-comment@v2
-      if: always()
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        message-success: '@${{ github.actor }} Image is available for testing. `docker pull ${{ env.IMAGE_REPOSITORY }}:${{ steps.generate_tag.outputs.GIT_TAG }}`'
-        message-failure: '@${{ github.actor }} Yikes! You better fix it before anyone else finds out! [Build](https://github.com/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }}/checks) has Failed!'
-        allow-repeats: true
+      - name: Comment on PR
+        uses: mshick/add-pr-comment@v2
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          message-success: '@${{ github.actor }} Image is available for testing. `docker pull ${{ env.IMAGE_REPOSITORY }}:${{ steps.generate_tag.outputs.GIT_TAG }}`'
+          message-failure: '@${{ github.actor }} Yikes! You better fix it before anyone else finds out! [Build](https://github.com/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }}/checks) has Failed!'
+          allow-repeats: true
 
-    - name: Notify Slack
-      uses: 8398a7/action-slack@v3
-      if: always() # Pick up events even if the job fails or is canceled.
-      with:
-        status: ${{ job.status }}
-        fields: repo,author,action,eventName,ref,workflow
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        if: always() # Pick up events even if the job fails or is canceled.
+        with:
+          status: ${{ job.status }}
+          fields: repo,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
