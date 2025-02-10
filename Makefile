@@ -7,7 +7,6 @@ VERSION ?= 0.0.1
 OPERATOR_NAME ?= uptimeguardian
 CATALOG_DIR_PATH ?= catalog
 DOCKER_REPO_BASE ?= ghcr.io/stakater
-PR_TAG ?= PR
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
