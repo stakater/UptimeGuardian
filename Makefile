@@ -7,6 +7,7 @@ VERSION ?= 0.0.1
 OPERATOR_NAME ?= uptimeguardian
 CATALOG_DIR_PATH ?= catalog
 DOCKER_REPO_BASE ?= ghcr.io/stakater
+PR_TAG ?= PR
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -337,7 +338,7 @@ endif
 # Render bundle to the catalog index.
 .PHONY: catalog-render
 catalog-render: opm yq ## Render bundle to catalog index.
-	sh generate-catalog-index.sh $(DOCKER_REPO_BASE) $(OPERATOR_NAME) $(CATALOG_DIR_PATH)
+	sh generate-catalog-index.sh $(DOCKER_REPO_BASE) $(OPERATOR_NAME) $(CATALOG_DIR_PATH) $(VERSION) $(PR_TAG)
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
 	$(CONTAINER_TOOL) build -f catalog.Dockerfile -t $(CATALOG_IMG) .
