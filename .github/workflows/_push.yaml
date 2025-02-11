@@ -219,7 +219,7 @@ jobs:
 
        # Check catalog changes
       - name: Check if changes are made to catalog
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v3
         id: catalog_changed
         with:
           filters: |
