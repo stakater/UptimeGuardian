@@ -73,7 +73,7 @@ jobs:
 
       - name: Use Go Checkout Build Lint Action with Env
         id: verify
-        uses: stakater/UptimeGuardian/.github/actions/composites/verify.yaml@HEAD
+        uses: stakater/UptimeGuardian/.github/actions/verify.yaml@HEAD
         with:
           GOLANG_VERSION: ${{ inputs.GOLANG_VERSION }}
           RUN_GOLANG_CI_LINT: ${{ inputs.RUN_GOLANG_CI_LINT }}
