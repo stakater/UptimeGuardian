@@ -30,9 +30,6 @@ inputs:
     required: false
     default: main
     type: string
-outputs:
-  lint_status:
-    description: 'The result of the linting step'
 runs:
   using: "composite"
   steps:
