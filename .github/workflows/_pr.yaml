@@ -68,6 +68,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Use Go Checkout Build Lint Action with Env
         id: verify
         uses: stakater/UptimeGuardian/.github/workflows/composites/verify.yaml@HEAD
