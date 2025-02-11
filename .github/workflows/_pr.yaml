@@ -73,7 +73,7 @@ jobs:
 
       - name: Use Go Checkout Build Lint Action with Env
         id: verify
-        uses: stakater/UptimeGuardian/.github/actions/composites/verify.yaml@HEAD
+        uses: ./.github/actions/composites/verify.yaml
         with:
           GOLANG_VERSION: ${{ inputs.GOLANG_VERSION }}
           RUN_GOLANG_CI_LINT: ${{ inputs.RUN_GOLANG_CI_LINT }}
@@ -83,19 +83,19 @@ jobs:
 
       - name: Setup Tag
         id: tag
-        uses: stakater/UptimeGuardian/.github/actions/tag.yaml@HEAD
+        uses: ./.github/actions/tag.yaml
         with:
           PR: true
 
       - name: Setup Docker
         id: docker
-        uses: stakater/UptimeGuardian/.github/actions/docker.yaml@HEAD
+        uses: ./.github/actions/docker.yaml
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
 
       - name: Build & Push Bundle
         id: bundle
-        uses: stakater/UptimeGuardian/.github/actions/tag.yaml@HEAD
+        uses: ./.github/actions/tag.yaml
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
 
