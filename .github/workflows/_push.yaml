@@ -63,7 +63,7 @@ on:
         type: string
 
       CATALOG_DIR_PATH:
-        description: OPM CLI version to use
+        description: Catalog directory path
         default: catalog
         required: false
         type: string
@@ -116,7 +116,7 @@ jobs:
       - name: Check if Catalog release is needed
         id: check-catalog-changes
         run: |
-          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^${{CATALOG_DIR_PATH}}/'; then
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^${{inputs.CATALOG_DIR_PATH}}/'; then
             echo "should_release_catalog=true" >> $GITHUB_ENV
           else
             echo "should_release_catalog=false" >> $GITHUB_ENV
