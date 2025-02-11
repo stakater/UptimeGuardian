@@ -73,7 +73,7 @@ jobs:
 
       - name: Use Go Checkout Build Lint Action with Env
         id: verify
-        uses: ./.github/actions/composites/verify.yaml
+        uses: ./.github/actions/verify.yaml
         with:
           GOLANG_VERSION: ${{ inputs.GOLANG_VERSION }}
           RUN_GOLANG_CI_LINT: ${{ inputs.RUN_GOLANG_CI_LINT }}
