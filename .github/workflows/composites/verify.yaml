@@ -1,0 +1,78 @@
+name: "Verify"
+description: "Verify code & access"
+inputs:
+  GOLANG_VERSION:
+    description: Go version to use
+    default: "~1.18"
+    required: false
+    type: string
+
+  RUN_GOLANG_CI_LINT:
+    description: Run golangci-lint
+    default: true
+    required: false
+    type: boolean
+
+  GOLANG_CI_LINT_VERSION:
+    description: golang-ci-lint version to use
+    default: "v1.53.3"
+    required: false
+    type: string
+
+  RUN_GOLANG_TESTS:
+    description: Run golang tests
+    default: true
+    required: false
+    type: boolean
+
+  RELEASE_BRANCH:
+    description: Release branch to push changes
+    required: false
+    default: main
+    type: string
+outputs:
+  lint_status:
+    description: 'The result of the linting step'
+runs:
+  using: "composite"
+  steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Verify container registry secrets
+      run: |
+        if [ "${{ secrets.CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
+          echo "Required secrets 'CONTAINER_REGISTRY_URL' or 'CONTAINER_REGISTRY_USERNAME' or 'CONTAINER_REGISTRY_PASSWORD' are not set!"
+          exit 1
+        fi
+    - name: Verify Slack secrets
+      run: |
+        if [ "${{ secrets.SLACK_WEBHOOK_URL }}" == "" ] || [ "${{ secrets.ADMIN_TOKEN }}" == "" ]; then
+          echo "Required Secret 'SLACK_WEBHOOK_URL' or 'ADMIN_TOKEN' is not set!"
+          exit 1
+        fi
+    - name: Set up Go
+      id: go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.GOLANG_VERSION }}
+    - name: Run Lint
+      if: ${{ inputs.RUN_GOLANG_CI_LINT }}
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: ${{ inputs.GOLANG_CI_LINT_VERSION }}
+        only-new-issues: false
+        args: --timeout 10m
+    - name: Run Tests
+      if: ${{ inputs.RUN_GOLANG_TESTS }}
+      run: make test
+    - name: Generate Tag without 'v'
+      id: generate_tag_without_v
+      uses: anothrNick/github-tag-action@1.71.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WITH_V: false
+        DEFAULT_BUMP: patch
+        RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
+        DRY_RUN: true
