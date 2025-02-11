@@ -1,9 +1,20 @@
 name: "Bundle"
 description: "Build & push Operator bundle"
 inputs:
-  GOLANG_VERSION:
-    description: Go version to use
-    default: "~1.18"
+  TAG:
+    description: Git action Tag
+    required: true
+    type: string
+
+  OPERATOR_SDK_VERSION:
+    description: Operator SDK version to use
+    default: "v1.32.0"
+    required: false
+    type: string
+
+  OPM_VERSION:
+    description: OPM CLI version to use
+    default: "v1.50.0"
     required: false
     type: string
 outputs:
@@ -12,4 +23,14 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Install CLI tools from OpenShift Mirror
+      uses: redhat-actions/openshift-tools-installer@v1
+      with:
+        source: "github"
+        operator-sdk: ${{ inputs.OPERATOR_SDK_VERSION }}
+        opm: ${{ inputs.OPM_VERSION }}
 
+    - name: Build and Push Bundle
+      run: make bundle bundle-build bundle-push
+      env:
+        PR_TAG: -${{ inputs.TAG }}

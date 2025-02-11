@@ -1,47 +1,35 @@
-name: "Docker"
-description: "Setup Docker"
+name: "Setup Docker"
+description: "Setup Docker repository"
 inputs:
   TAG:
     description: Git action Tag
     required: true
     type: string
-
-  DOCKERFILE_PATH:
-    description: Dockerfile path
-    required: true
-    default: Dockerfile
-    type: string
+outputs:
+  IMAGE_REPOSITORY:
+    description: "The tag for the workflow run"
+    value: ${{ steps.repository.outputs.IMAGE_REPOSITORY }}
 runs:
   using: "composite"
   steps:
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       with:
-        driver-opts: |
-          image=moby/buildkit:v0.9.3
+        driver-opts: image=moby/buildkit:v0.9.3
         buildkitd-flags: --debug
+
     - name: Login to Registry
       uses: docker/login-action@v3
       with:
         registry: ${{ secrets.CONTAINER_REGISTRY_URL }}
         username: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
         password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+
     - name: Generate image repository path
+      id: repository
       run: |
-        echo IMAGE_REPOSITORY=$(echo ${{ secrets.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
-    - name: Build and push
-      uses: docker/build-push-action@v6
-      id: build_and_push
-      with:
-        context: .
-        file: ${{ inputs.DOCKERFILE_PATH  }}
-        pull: true
-        push: true
-        cache-to: type=inline
-        tags: |
-          ${{ env.IMAGE_REPOSITORY }}:${{ inputs.TAG }}
-        labels: |
-          org.opencontainers.image.source=${{ github.event.repository.clone_url }}
-          org.opencontainers.image.revision=${{ github.sha }}
+        echo IMAGE_REPOSITORY=$(echo ${{ secrets.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_OUTPUT
+        echo "IMAGE_REPOSITORY=${{ env.IMAGE_REPOSITORY }}" >> $GITHUB_OUTPUT
