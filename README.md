@@ -103,34 +103,11 @@ Apart from using the VSCode launch configuration (by selecting the any unit test
 make test
 ```
 
-## Project Distribution
-
-Following are the steps to build the installer and distribute this project to users.
-
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=ghcr.io/stakater/uptimeguardian:tag
-```
-
-NOTE: The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without
-its dependencies.
-
-2. Using the installer
-
-Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/stakater/uptimeguardian/<tag or branch>/dist/install.yaml
-```
-
-## ContributingWe welcome contributions to UptimeGuardian! Please feel free to submit issues, fork the repository and create pull requests for any improvements.
+## Contributing to UptimeGuardian!
 
 Before submitting a pull request:
 1. Ensure all tests pass locally
-2. Add tests for any new features
+2. Add tests / e2e tests for any new features
 3. Update documentation as needed
 4. Follow the existing code style and conventions
 
