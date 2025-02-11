@@ -1,3 +1,4 @@
+---
 schema: olm.channel
 package: uptimeguardian
 name: preview
