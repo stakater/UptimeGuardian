@@ -68,12 +68,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Use Go Checkout Build Lint Action with Env
         id: verify
-        uses: ./.github/actions/verify.yaml
+        uses: ./.github/actions/verify
         with:
           GOLANG_VERSION: ${{ inputs.GOLANG_VERSION }}
           RUN_GOLANG_CI_LINT: ${{ inputs.RUN_GOLANG_CI_LINT }}
@@ -83,19 +80,19 @@ jobs:
 
       - name: Setup Tag
         id: tag
-        uses: ./.github/actions/tag.yaml
+        uses: ./.github/actions/tag
         with:
           PR: true
 
       - name: Setup Docker
         id: docker
-        uses: ./.github/actions/docker.yaml
+        uses: ./.github/actions/docker
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
 
       - name: Build & Push Bundle
         id: bundle
-        uses: ./.github/actions/tag.yaml
+        uses: ./.github/actions/bundle
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
 
