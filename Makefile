@@ -4,6 +4,9 @@
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 0.0.1
+OPERATOR_NAME ?= uptimeguardian
+CATALOG_DIR_PATH ?= catalog
+DOCKER_REPO_BASE ?= ghcr.io/stakater
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -28,8 +31,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# stakater.com/uptimeguardian-operator-bundle:$VERSION and stakater.com/uptimeguardian-operator-catalog:$VERSION.-operator
-IMAGE_TAG_BASE ?= ghcr.io/stakater/uptimeguardian
+# stakater.com/uptimeguardian-bundle:$VERSION and stakater.com/uptimeguardian-catalog:$VERSION.-operator
+IMAGE_TAG_BASE ?= $(DOCKER_REPO_BASE)/$(OPERATOR_NAME)
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -51,11 +54,6 @@ endif
 OPERATOR_SDK_VERSION ?= v1.36.1
 # Image URL to use all building/pushing image targets
 IMG ?= $(IMAGE_TAG_BASE):v$(VERSION)
-
-# CUSTOM_CATALOG_IMG defines the image:tag used for the custom catalog image.
-# Using digest becase it's easier to extract digest from the build_and_push action in github actions.
-CUSTOM_CATALOG_IMG ?= $(IMAGE_TAG_BASE)@$(IMAGE_DIGEST)
-
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.29.0
 
@@ -277,9 +275,6 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
-.PHONY: custom-bundle
-custom-bundle: bundle
-
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
@@ -305,9 +300,27 @@ OPM = $(shell which opm)
 endif
 endif
 
+.PHONY: yq
+YQ_VERSION := v4.13.0
+YQ_BIN := $(LOCALBIN)/yq
+yq:
+ifeq (,$(wildcard $(YQ_BIN)))
+ifeq (,$(shell which yq 2>/dev/null))
+	@{ \
+	set -e ;\
+	mkdir -p $(dir $(YQ_BIN)) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	curl -sSLo $(YQ_BIN) https://github.com/mikefarah/yq/releases/download/$(YQ_VERSION)/yq_$${OS}-$${ARCH} ;\
+	chmod +x $(YQ_BIN) ;\
+	}
+else
+YQ_BIN = $(shell which yq)
+endif
+endif
+
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
-BUNDLE_IMGS ?= $(BUNDLE_IMG)
+BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)$(PR_TAG)
 
 # The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
 CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)$(PR_TAG)
@@ -320,6 +333,11 @@ endif
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
+
+# Render bundle to the catalog index.
+.PHONY: catalog-render
+catalog-render: opm yq ## Render bundle to catalog index.
+	bash generate-catalog-index.sh $(DOCKER_REPO_BASE) $(OPERATOR_NAME) $(CATALOG_DIR_PATH) $(VERSION) $(PR_TAG)
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
 	$(CONTAINER_TOOL) build -f catalog.Dockerfile -t $(CATALOG_IMG) .
@@ -336,7 +354,5 @@ publish: ## Build and publish operator.
 	$(MAKE) manifests build docker-build docker-push
 	rm -f bin/kustomize
 	$(MAKE) bundle bundle-build bundle-push
-	$(OPM) render $(BUNDLE_IMG) --output=yaml >> catalog/index.yaml
-	$(OPM) validate catalog
-	$(MAKE) catalog-build catalog-push
+	$(MAKE) catalog-render catalog-build catalog-push
 	

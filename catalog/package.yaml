@@ -5,9 +5,3 @@ icon:
   mediatype: image/svg+xml
 name: uptimeguardian
 schema: olm.package
----
-schema: olm.channel
-package: uptimeguardian
-name: preview
-entries:
-  - name: uptimeguardian.v0.0.1

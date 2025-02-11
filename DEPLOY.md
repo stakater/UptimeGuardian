@@ -1,5 +1,7 @@
+#### Need update
+
 #### Update release version in Makefile
-``VERSION ?= {{VERSION}}`` for example 0.0.3
+``VERSION ?= {{VERSION}}`` for example 0.0.1
 
 #### Build & push operator image
 ``make manifests build docker-build docker-push``

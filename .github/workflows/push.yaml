@@ -14,7 +14,8 @@ jobs:
   push-operator:
     name: Push Operator
     if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
-    uses: stakater/.github/.github/workflows/operator_push.yaml@main
+#    uses: stakater/.github/.github/workflows/operator_push.yaml@main
+    uses: stakater/UptimeGuardian/.github/workflows/_push.yaml@main
     secrets:
       ADMIN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.STAKATER_DELIVERY_SLACK_WEBHOOK }}
@@ -25,7 +26,5 @@ jobs:
       GOLANG_VERSION: ~1.23
       RUN_GOLANG_CI_LINT: false
       RUN_GOLANG_TESTS: true
-      DOCKERFILE_PATH: Dockerfile
       RELEASE_BRANCH: main
-      BUILD_CUSTOM_CATALOG: true
       OPERATOR_SDK_VERSION: v1.36.1
