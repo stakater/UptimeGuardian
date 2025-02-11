@@ -15,13 +15,13 @@ inputs:
 outputs:
   TAG:
     description: "The tag for the workflow run"
-    value: ${{ steps.tag.outputs.TAG }}
+    value: ${{ steps.generate.outputs.TAG }}
 runs:
   using: "composite"
   steps:
     - name: Generate Tag
-      id: generate
       if: ${{ inputs.PR != true }}
+      id: generate
       uses: anothrNick/github-tag-action@1.71.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -31,13 +31,12 @@ runs:
         DRY_RUN: true
 
     - name: Rename Tag Output
-      id: tag
       if: ${{ inputs.PR != true }}
-      run: echo "TAG=${{ steps.generate.outputs.new_tag }}" >> $GITHUB_OUTPUT
+      run: echo "TAG=${{ steps.generate.outputs.new_tag }}" >> $GITHUB_ENV
 
     - name: Generate Tag
       if: ${{ inputs.PR == true }}
-      id: tag
+      id: generate
       run: |
         sha=${{ github.event.pull_request.head.sha }}
         tag="SNAPSHOT-PR-${{ github.event.pull_request.number }}-${sha:0:8}"
