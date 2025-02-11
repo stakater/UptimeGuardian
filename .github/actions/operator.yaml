@@ -1,0 +1,36 @@
+name: "Operator"
+description: "Build and push operator image"
+inputs:
+  GOLANG_VERSION:
+    description: Go version to use
+    default: "~1.18"
+    required: false
+    type: string
+
+  RUN_GOLANG_CI_LINT:
+    description: Run golangci-lint
+    default: true
+    required: false
+    type: boolean
+
+  GOLANG_CI_LINT_VERSION:
+    description: golang-ci-lint version to use
+    default: "v1.53.3"
+    required: false
+    type: string
+
+  RUN_GOLANG_TESTS:
+    description: Run golang tests
+    default: true
+    required: false
+    type: boolean
+
+  DOCKERFILE_PATH:
+    description: Dockerfile path
+    required: false
+    default: Dockerfile
+    type: string
+runs:
+  using: "composite"
+  steps:
+
