@@ -165,6 +165,7 @@ jobs:
     outputs:
       new_tag: ${{ steps.generate_tag.outputs.new_tag }}
       new_tag_without_v: ${{ steps.generate_tag_without_v.outputs.new_tag }}
+      should_release_catalog: ${{ steps.check-catalog-changes.outputs.should_release_catalog }}
 
   push-operator:
     name: Push operator to Container Registry
@@ -226,13 +227,13 @@ jobs:
           VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
 
       - name: Build and Push Catalog
-        if: env.should_release_catalog == 'true'
+        if: ${{ needs.check-catalog-changes.outputs.should_release_catalog == 'true' }}
         run: make catalog-render catalog-build catalog-push
         env:
           VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
 
       - name: Push Latest Tag
-        if: env.should_release_catalog == 'true'
+        if: ${{ needs.check-catalog-changes.outputs.should_release_catalog == 'true' }}
         uses: anothrNick/github-tag-action@1.71.0
         env:
           GITHUB_TOKEN: ${{ secrets.ADMIN_TOKEN }}
