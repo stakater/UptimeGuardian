@@ -41,6 +41,8 @@ const (
 	ClusterNameLabel = "cluster-name"
 )
 
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=probes,verbs=get;list;create;update;patch;delete
+
 func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.logger = log.FromContext(ctx).WithName(r.Name)
 	r.logger.Info("Reconciling SpokeRoute")
