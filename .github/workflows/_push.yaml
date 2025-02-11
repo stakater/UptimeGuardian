@@ -113,15 +113,6 @@ jobs:
             exit 1
           fi
 
-      - name: Check if Catalog release is needed
-        id: check-catalog-changes
-        run: |
-          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^${{inputs.CATALOG_DIR_PATH}}/'; then
-            echo "should_release_catalog=true" >> $GITHUB_ENV
-          else
-            echo "should_release_catalog=false" >> $GITHUB_ENV
-          fi
-
       - name: Set up Go
         id: go
         uses: actions/setup-go@v5
@@ -199,7 +190,7 @@ jobs:
           username: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
           password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
 
-      - name: Build and push
+      - name: Build and push operator
         uses: docker/build-push-action@v6
         id: build_and_push
         with:
@@ -226,14 +217,23 @@ jobs:
         env:
           VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
 
+       # Check catalog changes
+      - name: Check if changes are made to catalog
+        uses: dorny/paths-filter@v2
+        id: catalog_changed
+        with:
+          filters: |
+            catalog:
+              - "${{ inputs.CATALOG_DIR_PATH }}/**"
+
       - name: Build and Push Catalog
-        if: ${{ needs.push-operator-setup.outputs.should_release_catalog == 'true' }}
+        if: ${{ steps.catalog_changed.outputs.catalog == 'true' }}
         run: make catalog-render catalog-build catalog-push
         env:
           VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
 
       - name: Push Latest Tag
-        if: ${{ needs.push-operator-setup.outputs.should_release_catalog == 'true' }}
+        if: ${{ steps.catalog_changed.outputs.catalog == 'true' }}
         uses: anothrNick/github-tag-action@1.71.0
         env:
           GITHUB_TOKEN: ${{ secrets.ADMIN_TOKEN }}
