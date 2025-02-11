@@ -89,26 +89,20 @@ jobs:
 
       - name: Setup Docker
         id: docker
+        uses: stakater/UptimeGuardian/.github/actions/docker.yaml@HEAD
+        with:
+          TAG: ${{ steps.tag.outputs.TAG }}
+
+      - name: Build & Push Bundle
+        id: bundle
         uses: stakater/UptimeGuardian/.github/actions/tag.yaml@HEAD
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
 
-      - name: Install CLI tools from OpenShift Mirror
-        uses: redhat-actions/openshift-tools-installer@v1
-        with:
-          source: "github"
-          operator-sdk: ${{ inputs.OPERATOR_SDK_VERSION }}
-          opm: ${{ inputs.OPM_VERSION }}
-
-      - name: Build and Push Bundle
-        run: make bundle bundle-build bundle-push
-        env:
-          PR_TAG: -${{ steps.verify.outputs.GIT_TAG }}
-
       - name: Build and Push Catalog
         run: make catalog-render catalog-build catalog-push
         env:
-          PR_TAG: -${{ steps.verify.outputs.GIT_TAG }}
+          PR_TAG: -${{ steps.tag.outputs.TAG }}
 
       - name: Comment on PR
         uses: mshick/add-pr-comment@v2
@@ -116,7 +110,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          message-success: '@${{ github.actor }} Image is available for testing. `docker pull ${{ env.IMAGE_REPOSITORY }}:${{ steps.verify.outputs.GIT_TAG }}`'
+          message-success: '@${{ github.actor }} Image is available for testing. `docker pull ${{ steps.docker.IMAGE_REPOSITORY }}:${{ steps.tag.outputs.TAG }}`'
           message-failure: '@${{ github.actor }} Yikes! You better fix it before anyone else finds out! [Build](https://github.com/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }}/checks) has Failed!'
           allow-repeats: true
 
