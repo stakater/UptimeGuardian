@@ -62,6 +62,12 @@ on:
         required: false
         type: string
 
+      CATALOG_DIR_PATH:
+        description: OPM CLI version to use
+        default: catalog
+        required: false
+        type: string
+
     secrets:
       ADMIN_TOKEN:
         description: "Secret to pull latest tag"
@@ -105,6 +111,15 @@ jobs:
           if [ "${{ secrets.SLACK_WEBHOOK_URL }}" == "" ] || [ "${{ secrets.ADMIN_TOKEN }}" == "" ]; then
             echo "Required Secret 'SLACK_WEBHOOK_URL' or 'ADMIN_TOKEN' is not set!"
             exit 1
+          fi
+
+      - name: Check if Catalog release is needed
+        id: check-catalog-changes
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^${{CATALOG_DIR_PATH}}/'; then
+            echo "should_release_catalog=true" >> $GITHUB_ENV
+          else
+            echo "should_release_catalog=false" >> $GITHUB_ENV
           fi
 
       - name: Set up Go
@@ -210,12 +225,20 @@ jobs:
         env:
           VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
 
-      - name: Push changes
-        if: ${{ env.commit_made == 'true' }}
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.ADMIN_TOKEN }}
-          branch: ${{ inputs.RELEASE_BRANCH }}
+      - name: Build and Push Catalog
+        if: env.should_release_catalog == 'true'
+        run: make catalog-render catalog-build catalog-push
+        env:
+          VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
+
+      - name: Push Latest Tag
+        if: env.should_release_catalog == 'true'
+        uses: anothrNick/github-tag-action@1.71.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          WITH_V: true
+          RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
+          DEFAULT_BUMP: patch
 
       - name: Comment on PR
         uses: mshick/add-pr-comment@v2
