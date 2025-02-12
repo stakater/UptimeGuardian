@@ -38,7 +38,7 @@ runs:
       shell: bash
       run: |
         sha=${{ github.event.pull_request.head.sha }}
-        tag="SNAPSHOT-PR-${{ github.event.pull_request.number }}-${sha:0:8}"
+        tag="-SNAPSHOT-PR-${{ github.event.pull_request.number }}-${sha:0:8}"
         echo "TAG=$(echo ${tag})" >> $GITHUB_ENV
 
     - name: Output Tag
