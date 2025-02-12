@@ -3,12 +3,6 @@ name: Operator PR Request
 on:
   workflow_call:
     inputs:
-      GO_VERSION:
-        description: Go version to use
-        default: "~1.23"
-        required: false
-        type: string
-
       ENABLE_LINTING:
         description: Run golangci-lint
         default: true
@@ -62,7 +56,6 @@ jobs:
         id: verify
         uses: ./.github/actions/verify
         with:
-          GO_VERSION: ${{ inputs.GO_VERSION }}
           ENABLE_LINTING: ${{ inputs.ENABLE_LINTING }}
           ENABLE_UNIT_TESTS: ${{ inputs.ENABLE_UNIT_TESTS }}
 

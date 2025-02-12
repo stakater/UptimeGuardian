@@ -3,12 +3,6 @@ name: Operator Push
 on:
   workflow_call:
     inputs:
-      GO_VERSION:
-        description: Go version to use
-        default: "~1.23"
-        required: false
-        type: string
-
       ENABLE_LINTING:
         description: Run golangci-lint
         default: true
