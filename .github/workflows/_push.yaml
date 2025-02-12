@@ -3,25 +3,19 @@ name: Operator Push
 on:
   workflow_call:
     inputs:
-      GOLANG_VERSION:
-        description: Go version to use
-        default: "~1.18"
-        required: false
-        type: string
-
-      RUN_GOLANG_CI_LINT:
+      ENABLE_LINTING:
         description: Run golangci-lint
         default: true
         required: false
         type: boolean
 
-      GOLANG_CI_LINT_VERSION:
-        description: golang-ci-lint version to use
-        default: "v1.53.3"
+      RELEASE_BRANCH:
+        description: Release branch to push changes
         required: false
         type: string
+        default: main
 
-      RUN_GOLANG_TESTS:
+      ENABLE_UNIT_TESTS:
         description: Run golang tests
         default: true
         required: false
@@ -29,31 +23,8 @@ on:
 
       DOCKERFILE_PATH:
         description: Dockerfile path
-        required: false
-        default: Dockerfile
-        type: string
-
-      BOT_USERNAME:
-        description: Bot username to create release
-        default: "stakater-github-root"
-        required: false
-        type: string
-
-      BOT_EMAIL:
-        description: Bot email to create release
-        default: "github-root@stakater.com"
-        required: false
-        type: string
-
-      RELEASE_BRANCH:
-        description: Release branch to push changes
         required: true
-        type: string
-
-      OPERATOR_SDK_VERSION:
-        description: Operator SDK version to use
-        default: "v1.32.0"
-        required: false
+        default: Dockerfile
         type: string
 
       OPM_VERSION:
@@ -62,200 +33,72 @@ on:
         required: false
         type: string
 
-      CATALOG_DIR_PATH:
-        description: Catalog directory path
-        default: catalog
-        required: false
-        type: string
-
     secrets:
-      ADMIN_TOKEN:
-        description: "Secret to pull latest tag"
-        required: true
-
       SLACK_WEBHOOK_URL:
         description: "Secret to send success/failure message to slack"
         required: true
 
       CONTAINER_REGISTRY_URL:
-        description: "Container registry to publish docker image"
+        description: "Registry URL to publish image"
         required: true
 
       CONTAINER_REGISTRY_USERNAME:
-        description: "Username to login to container registry"
+        description: "Registry username to login"
         required: true
 
       CONTAINER_REGISTRY_PASSWORD:
-        description: "Password to login to container registry"
+        description: "Registry password to login"
         required: true
 jobs:
-  push-operator-setup:
-    name: Operator Push Setup
+  make-operator-pull-request:
+    name: Operator Pull Request
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Verify code
+        id: verify
+        uses: ./.github/actions/verify
         with:
-          fetch-depth: 0
+          ENABLE_LINTING: ${{ inputs.ENABLE_LINTING }}
+          ENABLE_UNIT_TESTS: ${{ inputs.ENABLE_UNIT_TESTS }}
 
-      - name: Check if container registry secrets are set
-        run: |
-          if [ "${{ secrets.CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
-            echo "Required secrets 'CONTAINER_REGISTRY_URL' or 'CONTAINER_REGISTRY_USERNAME' or 'CONTAINER_REGISTRY_PASSWORD' are not set!"
-            exit 1
-          fi
-
-      - name: Check if required secrets are set
-        run: |
-          if [ "${{ secrets.SLACK_WEBHOOK_URL }}" == "" ] || [ "${{ secrets.ADMIN_TOKEN }}" == "" ]; then
-            echo "Required Secret 'SLACK_WEBHOOK_URL' or 'ADMIN_TOKEN' is not set!"
-            exit 1
-          fi
-
-      - name: Set up Go
-        id: go
-        uses: actions/setup-go@v5
+      - name: Setup Version Tag
+        id: tag
+        uses: ./.github/actions/tag
         with:
-          go-version: ${{ inputs.GOLANG_VERSION }}
-
-      - name: Lint
-        if: ${{ inputs.RUN_GOLANG_CI_LINT }}
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: ${{ inputs.GOLANG_CI_LINT_VERSION }}
-          only-new-issues: false
-          args: --timeout 10m
-
-      # Run Tests
-      - name: Test
-        if: ${{ inputs.RUN_GOLANG_TESTS }}
-        run: make test
-
-      - name: Generate Tag
-        id: generate_tag
-        uses: anothrNick/github-tag-action@1.71.0
+          PR: true
+          RELEASE_BRANCH: ${{ inputs.RELEASE_BRANCH }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: true
-          DEFAULT_BUMP: patch
-          RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
-          DRY_RUN: true
 
-      # Generate tag without "v"
-      - name: Generate Tag without 'v'
-        id: generate_tag_without_v
-        uses: anothrNick/github-tag-action@1.71.0
+      - name: Setup Docker
+        id: docker
+        uses: ./.github/actions/docker
+        with:
+          TAG: ${{ steps.tag.outputs.TAG }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: false
-          DEFAULT_BUMP: patch
-          RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
-          DRY_RUN: true
+          CONTAINER_REGISTRY_URL: ${{ secrets.CONTAINER_REGISTRY_URL }}
+          CONTAINER_REGISTRY_USERNAME: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
+          CONTAINER_REGISTRY_PASSWORD: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
 
-    outputs:
-      new_tag: ${{ steps.generate_tag.outputs.new_tag }}
-      new_tag_without_v: ${{ steps.generate_tag_without_v.outputs.new_tag }}
-      should_release_catalog: ${{ steps.check-catalog-changes.outputs.should_release_catalog }}
-
-  push-operator:
-    name: Push operator to Container Registry
-    needs: ["push-operator-setup"]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - name: Build & Push
+        uses: ./.github/actions/build
         with:
-          fetch-depth: 0
-
-      - name: Generate container image repository path
-        run: |
-          echo CONTAINER_IMAGE_REPOSITORY=$(echo ${{ secrets.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: |
-            image=moby/buildkit:v0.9.3
-          buildkitd-flags: --debug
-
-      - name: Login to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.CONTAINER_REGISTRY_URL }}
-          username: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
-          password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
-
-      - name: Build and push operator
-        uses: docker/build-push-action@v6
-        id: build_and_push
-        with:
-          context: .
-          file: ${{ inputs.DOCKERFILE_PATH  }}
-          pull: true
-          push: true
-          cache-to: type=inline
-          tags: |
-            ${{ env.CONTAINER_IMAGE_REPOSITORY }}:${{ needs.push-operator-setup.outputs.new_tag }}
-          labels: |
-            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
-            org.opencontainers.image.revision=${{ github.sha }}
-
-      - name: Install CLI tools from OpenShift Mirror
-        uses: redhat-actions/openshift-tools-installer@v1
-        with:
-          source: "github"
-          operator-sdk: ${{ inputs.OPERATOR_SDK_VERSION }}
-          opm: ${{ inputs.OPM_VERSION }}
-
-      - name: Build and Push Bundle
-        run: make bundle bundle-build bundle-push
+          TAG: ${{ steps.tag.outputs.TAG }}
+          IMAGE_REPOSITORY: ${{ steps.docker.outputs.IMAGE_REPOSITORY }}
+          OPM_VERSION: ${{ inputs.OPM_VERSION }}
         env:
-          VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
 
-       # Check catalog changes
-      - name: Check if changes are made to catalog
-        uses: dorny/paths-filter@v3
-        id: catalog_changed
+      - name: Notify
+        uses: ./.github/actions/notify
         with:
-          filters: |
-            catalog:
-              - "${{ inputs.CATALOG_DIR_PATH }}/**"
-
-      - name: Build and Push Catalog
-        if: ${{ steps.catalog_changed.outputs.catalog == 'true' }}
-        run: make catalog-render catalog-build catalog-push
-        env:
-          VERSION: ${{  needs.push-operator-setup.outputs.new_tag_without_v }}
-
-      - name: Push Latest Tag
-        if: ${{ steps.catalog_changed.outputs.catalog == 'true' }}
-        uses: anothrNick/github-tag-action@1.71.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-          WITH_V: true
-          RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
-          DEFAULT_BUMP: patch
-
-      - name: Comment on PR
-        uses: mshick/add-pr-comment@v2
-        if: always()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          message-success: '@${{ github.actor }} Image is available for testing. `docker pull ${{ env.CONTAINER_IMAGE_REPOSITORY }}:${{ needs.push-operator-setup.outputs.new_tag }}`'
-          message-failure: '@${{ github.actor }} Yikes! You better fix it before anyone else finds out! [Build](https://github.com/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }}/checks) has Failed!'
-          allow-repeats: true
-
-      - name: Notify Slack
-        uses: 8398a7/action-slack@v3
-        if: always() # Pick up events even if the job fails or is canceled.
-        with:
-          status: ${{ job.status }}
-          fields: repo,author,action,eventName,ref,workflow
+          TAG: ${{ steps.tag.outputs.TAG }}
+          IMAGE_REPOSITORY: ${{ steps.docker.outputs.IMAGE_REPOSITORY }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -34,6 +34,14 @@ runs:
       env:
         GIT_TAG: ${{ inputs.TAG }}
 
+    - name: Check if changes are made to catalog
+      uses: dorny/paths-filter@v3
+      id: catalog_changed
+      with:
+        filters: |
+          catalog:
+            - "${{ inputs.CATALOG_DIR_PATH }}/**"
+
     - name: Push Latest Tag
       if: ${{ steps.catalog_changed.outputs.catalog == 'true' }}
       uses: anothrNick/github-tag-action@1.71.0
