@@ -8,12 +8,10 @@ inputs:
 
   ENABLE_LINTING:
     description: Run golangci-lint
-    default: "true"
     required: false
 
   ENABLE_UNIT_TESTS:
     description: Run golang tests
-    default: "true"
     required: false
 runs:
   using: "composite"
@@ -25,16 +23,12 @@ runs:
         go-version: ${{ inputs.GO_VERSION }}
         cache: true
 
-    - name: Install golangci-lint
-      shell: bash
-      run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${{ inputs.GO_VERSION }}
-
     - name: Run lint
-      if: ${{ inputs.ENABLE_LINTING == true }}
+      if: ${{ inputs.ENABLE_LINTING }}
       shell: bash
       run: make lint
 
     - name: Run Tests
-      if: ${{ inputs.ENABLE_UNIT_TESTS == true }}
+      if: ${{ inputs.ENABLE_UNIT_TESTS }}
       shell: bash
       run: make test
