@@ -15,12 +15,6 @@ on:
         required: false
         type: boolean
 
-      LINT_VERSION:
-        description: golang-ci-lint version to use
-        default: "v1.53.3"
-        required: false
-        type: string
-
       RELEASE_BRANCH:
         description: Release branch to push changes
         required: false
