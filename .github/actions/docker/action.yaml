@@ -15,7 +15,7 @@ runs:
     - name: Verify container registry secrets
       shell: bash
       run: |
-        if [ "${{ env.CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ env.CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ env.CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
+        if [ "${{ CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
           echo "Required secrets 'CONTAINER_REGISTRY_URL' or 'CONTAINER_REGISTRY_USERNAME' or 'CONTAINER_REGISTRY_PASSWORD' are not set!"
           exit 1
         fi
@@ -32,12 +32,12 @@ runs:
     - name: Login to Registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ env.CONTAINER_REGISTRY_URL }}
-        username: ${{ env.CONTAINER_REGISTRY_USERNAME }}
-        password: ${{ env.CONTAINER_REGISTRY_PASSWORD }}
+        registry: ${{ CONTAINER_REGISTRY_URL }}
+        username: ${{ CONTAINER_REGISTRY_USERNAME }}
+        password: ${{ CONTAINER_REGISTRY_PASSWORD }}
 
     - name: Generate image repository path
       id: repository
       shell: bash
       run: |
-        echo IMAGE_REPOSITORY=$(echo ${{ env.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') | tee -a $GITHUB_OUTPUT $GITHUB_ENV
+        echo IMAGE_REPOSITORY=$(echo ${{ CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') | tee -a $GITHUB_OUTPUT $GITHUB_ENV
