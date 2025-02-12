@@ -4,7 +4,7 @@ inputs:
   TAG:
     description: Git action Tag
     required: true
-    type: string
+
 outputs:
   IMAGE_REPOSITORY:
     description: "The tag for the workflow run"
@@ -12,6 +12,14 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Verify container registry secrets
+      shell: bash
+      run: |
+        if [ "${{ secrets.CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ secrets.CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
+          echo "Required secrets 'CONTAINER_REGISTRY_URL' or 'CONTAINER_REGISTRY_USERNAME' or 'CONTAINER_REGISTRY_PASSWORD' are not set!"
+          exit 1
+        fi
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
 
@@ -30,6 +38,6 @@ runs:
 
     - name: Generate image repository path
       id: repository
+      shell: bash
       run: |
-        echo IMAGE_REPOSITORY=$(echo ${{ secrets.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_OUTPUT
-        echo "IMAGE_REPOSITORY=${{ env.IMAGE_REPOSITORY }}" >> $GITHUB_OUTPUT
+        echo IMAGE_REPOSITORY=$(echo ${{ secrets.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') | tee -a $GITHUB_OUTPUT $GITHUB_ENV

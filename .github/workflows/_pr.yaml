@@ -3,25 +3,25 @@ name: Operator PR Request
 on:
   workflow_call:
     inputs:
-      GOLANG_VERSION:
+      GO_VERSION:
         description: Go version to use
         default: "~1.18"
         required: false
         type: string
 
-      Run_GOLANG_CI_LINT:
+      ENABLE_LINTING:
         description: Run golangci-lint
         default: true
         required: false
         type: boolean
 
-      GOLANG_CI_LINT_VERSION:
+      LINT_VERSION:
         description: golang-ci-lint version to use
         default: "v1.53.3"
         required: false
         type: string
 
-      RUN_GOLANG_TESTS:
+      ENABLE_UNIT_TESTS:
         description: Run golang tests
         default: true
         required: false
@@ -58,8 +58,12 @@ on:
         description: "Registry username to login"
         required: true
 
-      CONTAINER_REGISTRY_PASSWORD:
-        description: "Registry password to login"
+      ADMIN_TOKEN:
+        description: "Github admin token"
+        required: true
+
+      GITHUB_TOKEN:
+        description: "github access token"
         required: true
 
 jobs:
@@ -71,17 +75,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use Go Checkout Build Lint Action with Env
+      - name: Verify code
         id: verify
         uses: ./.github/actions/verify
         with:
-          GOLANG_VERSION: ${{ inputs.GOLANG_VERSION }}
-          RUN_GOLANG_CI_LINT: ${{ inputs.RUN_GOLANG_CI_LINT }}
-          GOLANG_CI_LINT_VERSION: ${{ inputs.GOLANG_CI_LINT_VERSION }}
-          RUN_GOLANG_TESTS: ${{ inputs.RUN_GOLANG_TESTS }}
-          RELEASE_BRANCH: ${{ inputs.RELEASE_BRANCH }}
+          GO_VERSION: ${{ inputs.GO_VERSION }}
+          ENABLE_LINTING: ${{ inputs.ENABLE_LINTING }}
+          LINT_VERSION: ${{ inputs.LINT_VERSION }}
+          ENABLE_UNIT_TESTS: ${{ inputs.ENABLE_UNIT_TESTS }}
 
-      - name: Setup Tag
+      - name: Setup Version Tag
         id: tag
         uses: ./.github/actions/tag
         with:
@@ -93,32 +96,20 @@ jobs:
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
 
-      - name: Build & Push Bundle
-        id: bundle
-        uses: ./.github/actions/bundle
+      - name: Build & Push
+        uses: ./.github/actions/build
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
+          IMAGE_REPOSITORY: ${{ steps.docker.outputs.IMAGE_REPOSITORY }}
+          OPERATOR_SDK_VERSION: ${{ inputs.OPERATOR_SDK_VERSION }}
+          OPM_VERSION: ${{ inputs.OPM_VERSION }}
 
-      - name: Build and Push Catalog
-        run: make catalog-render catalog-build catalog-push
-        env:
-          PR_TAG: -${{ steps.tag.outputs.TAG }}
-
-      - name: Comment on PR
-        uses: mshick/add-pr-comment@v2
-        if: always()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Notify
+        uses: ./.github/actions/notify
         with:
-          message-success: '@${{ github.actor }} Image is available for testing. `docker pull ${{ steps.docker.IMAGE_REPOSITORY }}:${{ steps.tag.outputs.TAG }}`'
-          message-failure: '@${{ github.actor }} Yikes! You better fix it before anyone else finds out! [Build](https://github.com/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }}/checks) has Failed!'
-          allow-repeats: true
-
-      - name: Notify Slack
-        uses: 8398a7/action-slack@v3
-        if: always() # Pick up events even if the job fails or is canceled.
-        with:
-          status: ${{ job.status }}
-          fields: repo,author,action,eventName,ref,workflow
-        env:
+          TAG: ${{ steps.tag.outputs.TAG }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          IMAGE_REPOSITORY: ${{ steps.docker.outputs.IMAGE_REPOSITORY }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
