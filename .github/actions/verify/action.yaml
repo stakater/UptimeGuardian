@@ -3,20 +3,22 @@ description: "Verify code"
 inputs:
   ENABLE_LINTING:
     description: Run golangci-lint
+    default: "true"
     required: false
 
   ENABLE_UNIT_TESTS:
     description: Run golang tests
+    default: "true"
     required: false
 runs:
   using: "composite"
   steps:
     - name: Run lint
-      if: ${{ inputs.ENABLE_LINTING }}
+      if: ${{ inputs.ENABLE_LINTING == 'true' }}
       shell: bash
       run: make lint
 
     - name: Run Tests
-      if: ${{ inputs.ENABLE_UNIT_TESTS }}
+      if: ${{ inputs.ENABLE_UNIT_TESTS == 'true' }}
       shell: bash
       run: make test
