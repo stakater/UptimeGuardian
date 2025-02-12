@@ -22,5 +22,6 @@ jobs:
       CONTAINER_REGISTRY_PASSWORD: ${{ secrets.GHCR_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.STAKATER_DELIVERY_SLACK_WEBHOOK }}
     with:
+      GO_VERSION: 1.23.6
       ENABLE_LINTING: true
       ENABLE_UNIT_TESTS: true

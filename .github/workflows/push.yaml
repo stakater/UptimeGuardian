@@ -22,5 +22,6 @@ jobs:
       CONTAINER_REGISTRY_USERNAME: stakater-user
       CONTAINER_REGISTRY_PASSWORD: ${{ secrets.GHCR_TOKEN }}
     with:
+      GO_VERSION: 1.23.6
       ENABLE_LINTING: true
       ENABLE_UNIT_TESTS: true
