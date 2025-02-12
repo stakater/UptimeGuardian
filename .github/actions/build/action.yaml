@@ -1,0 +1,52 @@
+name: "Build & Push"
+description: "Build and push images"
+inputs:
+  TAG:
+    description: "The tag for the workflow run"
+    required: true
+
+  IMAGE_REPOSITORY:
+    description: "The tag for the workflow run"
+    required: true
+
+  OPM_VERSION:
+    description: OPM CLI version to use
+    default: "v1.50.0"
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Install CLI tools
+      uses: redhat-actions/openshift-tools-installer@v1
+      with:
+        source: "github"
+        opm: ${{ inputs.OPM_VERSION }}
+
+    - name: Build and Push Bundle
+      run: make bundle bundle-build bundle-push
+      shell: bash
+      env:
+        GIT_TAG: ${{ inputs.TAG }}
+
+    - name: Build and Push Catalog
+      run: make catalog-render catalog-build catalog-push
+      shell: bash
+      env:
+        GIT_TAG: ${{ inputs.TAG }}
+
+    - name: Check if changes are made to catalog
+      uses: dorny/paths-filter@v3
+      id: catalog_changed
+      with:
+        filters: |
+          catalog:
+            - "${{ inputs.CATALOG_DIR_PATH }}/**"
+
+    - name: Push Latest Tag
+      if: ${{ steps.catalog_changed.outputs.catalog == 'true' }}
+      uses: anothrNick/github-tag-action@1.71.0
+      env:
+        GITHUB_TOKEN: ${{ env.ADMIN_TOKEN }}
+        WITH_V: true
+        RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
+        DEFAULT_BUMP: patch
