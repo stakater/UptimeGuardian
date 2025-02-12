@@ -76,8 +76,9 @@ jobs:
         uses: ./.github/actions/tag
         with:
           PR: true
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_BRANCH: ${{ inputs.RELEASE_BRANCH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Docker
         id: docker
