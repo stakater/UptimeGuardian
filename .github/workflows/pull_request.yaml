@@ -24,7 +24,6 @@ jobs:
     with:
       GO_VERSION: ~1.21
       DOCKERFILE_PATH: Dockerfile
-      LINT_VERSION: v1.53.3
       ENABLE_LINTING: false
       ENABLE_UNIT_TESTS: false
       OPERATOR_SDK_VERSION: v1.36.1
