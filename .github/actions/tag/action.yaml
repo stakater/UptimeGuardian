@@ -36,5 +36,5 @@ runs:
       run: |
         sha=${{ github.event.pull_request.head.sha }}
         tag="-SNAPSHOT-PR-${{ github.event.pull_request.number }}-${sha:0:8}"
-        echo "TAG=${{ steps.generate.outputs.new_tag }}" >> $GITHUB_ENV
-        echo "PR_TAG=$(echo ${tag})" >> $GITHUB_ENV
+        echo "TAG=${{ steps.generate.outputs.new_tag }}" >> $GITHUB_OUTPUT
+        echo "PR_TAG=$(echo ${tag})" >> $GITHUB_OUTPUT
