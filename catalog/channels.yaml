@@ -3,3 +3,6 @@ package: uptimeguardian
 name: preview
 entries:
   - name: uptimeguardian.v0.0.1
+  - name: uptimeguardian.v0.0.2
+    skips:
+      - uptimeguardian.v0.0.1
