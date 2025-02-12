@@ -23,6 +23,6 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.STAKATER_DELIVERY_SLACK_WEBHOOK }}
     with:
       DOCKERFILE_PATH: Dockerfile
-      ENABLE_LINTING: false
-      ENABLE_UNIT_TESTS: false
+      ENABLE_LINTING: true
+      ENABLE_UNIT_TESTS: true
       OPERATOR_SDK_VERSION: v1.36.1

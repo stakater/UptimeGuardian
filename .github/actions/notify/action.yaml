@@ -13,7 +13,7 @@ runs:
     - name: Verify Slack secrets
       shell: bash
       run: |
-        if [ "${{ env.SLACK_WEBHOOK_URL }}" == "" ] || [ "${{ env.ADMIN_TOKEN }}" == "" ]; then
+        if [ "${{ SLACK_WEBHOOK_URL }}" == "" ] || [ "${{ ADMIN_TOKEN }}" == "" ]; then
           echo "Required Secret 'SLACK_WEBHOOK_URL' or 'ADMIN_TOKEN' is not set!"
           exit 1
         fi
@@ -35,4 +35,4 @@ runs:
         status: ${{ job.status }}
         fields: repo,author,action,eventName,ref,workflow
       env:
-        SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_URL: ${{ SLACK_WEBHOOK_URL }}
