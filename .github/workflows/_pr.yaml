@@ -21,6 +21,12 @@ on:
         required: false
         type: string
 
+      RELEASE_BRANCH:
+        description: Release branch to push changes
+        required: false
+        type: string
+        default: main
+
       ENABLE_UNIT_TESTS:
         description: Run golang tests
         default: true
@@ -58,6 +64,10 @@ on:
         description: "Registry username to login"
         required: true
 
+      CONTAINER_REGISTRY_PASSWORD:
+        description: "Registry password to login"
+        required: true
+
       ADMIN_TOKEN:
         description: "Github admin token"
         required: true
@@ -89,12 +99,17 @@ jobs:
         uses: ./.github/actions/tag
         with:
           PR: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_BRANCH: ${{ inputs.RELEASE_BRANCH }}
 
       - name: Setup Docker
         id: docker
         uses: ./.github/actions/docker
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
+          CONTAINER_REGISTRY_URL: ${{ secrets.CONTAINER_REGISTRY_URL }}
+          CONTAINER_REGISTRY_USERNAME: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
+          CONTAINER_REGISTRY_PASSWORD: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
 
       - name: Build & Push
         uses: ./.github/actions/build

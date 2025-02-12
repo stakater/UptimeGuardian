@@ -10,6 +10,10 @@ inputs:
     description: Release branch to push changes
     required: false
     default: main
+
+  GITHUB_TOKEN:
+    description: "github access token"
+    required: true
 outputs:
   TAG:
     description: "The tag for the workflow run"
@@ -22,7 +26,7 @@ runs:
       if: ${{ inputs.PR != true }}
       uses: anothrNick/github-tag-action@1.71.0
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
         WITH_V: false
         DEFAULT_BUMP: patch
         RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
