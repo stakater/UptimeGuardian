@@ -54,6 +54,7 @@ func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			err = r.cleanupStaleProbes(ctx, req.Name, req.Namespace, nil)
 			if err != nil {
 				r.logger.Error(err, "Failed to cleanup probes for deleted UptimeProbe")
+				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
 		}
@@ -71,6 +72,7 @@ func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		// continue with the rest of the reconciliation
 		// TODO: should continue with error?
 		r.logger.Error(err, fmt.Sprintf("Failed to cleanup stale probes for uptimeProbe %v", uptimeProbe.GetName()))
+		return ctrl.Result{}, err
 	}
 
 	// create or update probes for each route
@@ -94,13 +96,19 @@ func (r *SpokeRouteReconciler) cleanupStaleProbes(ctx context.Context, uptimePro
 		return nil
 	}
 
+	var errs []error
+
 	// If routes is nil, delete all probes (UptimeProbe was deleted)
 	if routes == nil {
 		for _, probe := range probes.Items {
 			r.logger.Info(fmt.Sprintf("Deleting probe %v as UptimeProbe was deleted", probe.GetName()))
 			if err := r.Delete(ctx, &probe); err != nil {
 				r.logger.Error(err, fmt.Sprintf("Failed to delete probe %v", probe.GetName()))
+				errs = append(errs, fmt.Errorf("failed to delete probe %v: %w", probe.GetName(), err))
 			}
+		}
+		if len(errs) > 0 {
+			return fmt.Errorf("failed to delete one or more probes: %v", errs)
 		}
 		return nil
 	}
@@ -118,8 +126,13 @@ func (r *SpokeRouteReconciler) cleanupStaleProbes(ctx context.Context, uptimePro
 			r.logger.Info(fmt.Sprintf("Deleting stale probe %v as its route no longer matches the label selector", probe.GetName()))
 			if err := r.Delete(ctx, &probe); err != nil {
 				r.logger.Error(err, fmt.Sprintf("Failed to delete probe %v", probe.GetName()))
+				errs = append(errs, fmt.Errorf("failed to delete probe %v: %w", probe.GetName(), err))
 			}
 		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to delete one or more probes: %v", errs)
 	}
 
 	return nil

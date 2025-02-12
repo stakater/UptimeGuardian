@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -18,6 +19,19 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+// MockClient is a custom client that can simulate deletion failures
+type MockClient struct {
+	client.Client
+	shouldFailDelete bool
+}
+
+func (m *MockClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+	if m.shouldFailDelete {
+		return errors.New("simulated deletion failure")
+	}
+	return m.Client.Delete(ctx, obj, opts...)
+}
 
 var _ = Describe("SpokeRouteController", func() {
 	var (
@@ -236,6 +250,77 @@ var _ = Describe("SpokeRouteController", func() {
 				Namespace: "monitoring",
 			}, &monitoringv1.Probe{})
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("should handle probe deletion failures when UptimeProbe labels are updated", func() {
+			// Create a probe for an existing route
+			existingProbe := &monitoringv1.Probe{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-default-test-route",
+					Namespace: "monitoring",
+					Labels: map[string]string{
+						UptimeProbeLabel: fmt.Sprintf("%v-%v", uptimeProbe.Namespace, uptimeProbe.Name),
+						ClusterNameLabel: "test-cluster",
+					},
+				},
+				Spec: monitoringv1.ProbeSpec{
+					JobName: "test-job",
+					Targets: monitoringv1.ProbeTargets{
+						StaticConfig: &monitoringv1.ProbeTargetStaticConfig{
+							Targets: []string{"https://test.example.com"},
+						},
+					},
+				},
+			}
+
+			// Create base client with the probe and uptimeProbe
+			baseClient := fakeclient.NewClientBuilder().
+				WithScheme(reconciler.Scheme).
+				WithObjects(uptimeProbe, existingProbe).
+				Build()
+
+			// Create dynamic client with the route
+			var dynamicClient dynamic.Interface = fake.NewSimpleDynamicClient(reconciler.Scheme, route)
+
+			// Wrap with mock client that will fail deletions
+			mockClient := &MockClient{
+				Client:           baseClient,
+				shouldFailDelete: true,
+			}
+
+			// Setup reconciler with mock client
+			reconciler.Client = mockClient
+			reconciler.RemoteClient = dynamicClient
+
+			// Update UptimeProbe labels to no longer match the route
+			updatedUptimeProbe := uptimeProbe.DeepCopy()
+			updatedUptimeProbe.Spec.LabelSelector.MatchLabels = map[string]string{
+				"app": "different-label",
+			}
+			err := mockClient.Update(ctx, updatedUptimeProbe)
+			Expect(err).NotTo(HaveOccurred())
+
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      uptimeProbe.Name,
+					Namespace: uptimeProbe.Namespace,
+				},
+			}
+
+			// Reconciliation should return error due to failed deletion
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("simulated deletion failure"))
+			Expect(result).To(Equal(reconcile.Result{}))
+
+			// Verify probe still exists since deletion failed
+			existingProbe = &monitoringv1.Probe{}
+			err = reconciler.Get(ctx, types.NamespacedName{
+				Name:      "test-cluster-default-test-route",
+				Namespace: "monitoring",
+			}, existingProbe)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(existingProbe.Labels[UptimeProbeLabel]).To(Equal(fmt.Sprintf("%v-%v", uptimeProbe.Namespace, uptimeProbe.Name)))
 		})
 	})
 })
