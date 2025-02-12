@@ -1,11 +1,6 @@
 name: "Verify"
 description: "Verify code"
 inputs:
-  GO_VERSION:
-    description: Go version to use
-    default: "~1.18"
-    required: false
-
   ENABLE_LINTING:
     description: Run golangci-lint
     required: false
@@ -16,13 +11,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Go
-      id: go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ inputs.GO_VERSION }}
-        cache: true
-
     - name: Run lint
       if: ${{ inputs.ENABLE_LINTING }}
       shell: bash

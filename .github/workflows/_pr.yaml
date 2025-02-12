@@ -3,12 +3,6 @@ name: Operator PR Request
 on:
   workflow_call:
     inputs:
-      GO_VERSION:
-        description: Go version to use
-        default: "~1.18"
-        required: false
-        type: string
-
       ENABLE_LINTING:
         description: Run golangci-lint
         default: true
@@ -74,7 +68,6 @@ jobs:
         id: verify
         uses: ./.github/actions/verify
         with:
-          GO_VERSION: ${{ inputs.GO_VERSION }}
           ENABLE_LINTING: ${{ inputs.ENABLE_LINTING }}
           ENABLE_UNIT_TESTS: ${{ inputs.ENABLE_UNIT_TESTS }}
 
@@ -91,6 +84,7 @@ jobs:
         uses: ./.github/actions/docker
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
+        env:
           CONTAINER_REGISTRY_URL: ${{ secrets.CONTAINER_REGISTRY_URL }}
           CONTAINER_REGISTRY_USERNAME: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
           CONTAINER_REGISTRY_PASSWORD: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
@@ -107,8 +101,9 @@ jobs:
         uses: ./.github/actions/notify
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           IMAGE_REPOSITORY: ${{ steps.docker.outputs.IMAGE_REPOSITORY }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

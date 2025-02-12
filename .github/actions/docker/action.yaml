@@ -5,18 +5,6 @@ inputs:
     description: Git action Tag
     required: true
 
-  CONTAINER_REGISTRY_URL:
-    description: "Registry URL to publish image"
-    required: true
-
-  CONTAINER_REGISTRY_USERNAME:
-    description: "Registry username to login"
-    required: true
-
-  CONTAINER_REGISTRY_PASSWORD:
-    description: "Registry password to login"
-    required: true
-
 outputs:
   IMAGE_REPOSITORY:
     description: "The tag for the workflow run"
@@ -27,7 +15,7 @@ runs:
     - name: Verify container registry secrets
       shell: bash
       run: |
-        if [ "${{ inputs.CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ inputs.CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ inputs.CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
+        if [ "${{ env.CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ env.CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ env.CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
           echo "Required secrets 'CONTAINER_REGISTRY_URL' or 'CONTAINER_REGISTRY_USERNAME' or 'CONTAINER_REGISTRY_PASSWORD' are not set!"
           exit 1
         fi
@@ -44,12 +32,12 @@ runs:
     - name: Login to Registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ inputs.CONTAINER_REGISTRY_URL }}
-        username: ${{ inputs.CONTAINER_REGISTRY_USERNAME }}
-        password: ${{ inputs.CONTAINER_REGISTRY_PASSWORD }}
+        registry: ${{ env.CONTAINER_REGISTRY_URL }}
+        username: ${{ env.CONTAINER_REGISTRY_USERNAME }}
+        password: ${{ env.CONTAINER_REGISTRY_PASSWORD }}
 
     - name: Generate image repository path
       id: repository
       shell: bash
       run: |
-        echo IMAGE_REPOSITORY=$(echo ${{ inputs.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') | tee -a $GITHUB_OUTPUT $GITHUB_ENV
+        echo IMAGE_REPOSITORY=$(echo ${{ env.CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') | tee -a $GITHUB_OUTPUT $GITHUB_ENV
