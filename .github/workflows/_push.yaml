@@ -21,12 +21,6 @@ on:
         required: false
         type: boolean
 
-      DOCKERFILE_PATH:
-        description: Dockerfile path
-        required: true
-        default: Dockerfile
-        type: string
-
       OPM_VERSION:
         description: OPM CLI version to use
         default: "v1.50.0"
