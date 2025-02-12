@@ -95,8 +95,8 @@ jobs:
         with:
           TAG: ${{ steps.tag.outputs.TAG }}
           IMAGE_REPOSITORY: ${{ steps.docker.outputs.IMAGE_REPOSITORY }}
-          OPERATOR_SDK_VERSION: ${{ inputs.OPERATOR_SDK_VERSION }}
-          OPM_VERSION: ${{ inputs.OPM_VERSION }}
+        #          OPERATOR_SDK_VERSION: ${{ inputs.OPERATOR_SDK_VERSION }}
+        #          OPM_VERSION: ${{ inputs.OPM_VERSION }}
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
 
