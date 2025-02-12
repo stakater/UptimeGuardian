@@ -19,9 +19,16 @@ for item in $CHANNEL_BUNDLES; do
   # Setup bundle from entries
   latest="${OPERATOR_NAME}.v${VERSION}"
   if [ -n "$GIT_TAG" ] && [ "$latest" == "$item" ]; then
-      bundle="${item//${OPERATOR_NAME}./${OPERATOR_NAME}-bundle:}${GIT_TAG}"
+      # If GIT_TAG already starts with 'v', use it as is, otherwise add 'v'
+      if [[ "$GIT_TAG" == v* ]]; then
+          bundle="${OPERATOR_NAME}-bundle:${GIT_TAG}"
+      else
+          bundle="${OPERATOR_NAME}-bundle:v${GIT_TAG}"
+      fi
   else
-      bundle="${item//${OPERATOR_NAME}./${OPERATOR_NAME}-bundle:}"
+      # Extract version from item name and use it
+      version=${item#${OPERATOR_NAME}.v}
+      bundle="${OPERATOR_NAME}-bundle:v${version}"
   fi
 
   # Check if next release is defined in any channel
