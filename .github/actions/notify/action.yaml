@@ -1,0 +1,51 @@
+name: "Notify"
+description: "Finalization notification"
+inputs:
+  IMAGE_REPOSITORY:
+    description: "The Docker image repository"
+    required: true
+
+  SLACK_WEBHOOK_URL:
+    description: "Secret to send slack notifications"
+    required: true
+
+  TAG:
+    description: "The tag for the workflow run"
+    required: true
+
+  GITHUB_TOKEN:
+    description: "The github access token"
+    required: true
+
+  ADMIN_TOKEN:
+    description: "The github admin token"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Verify Slack secrets
+      shell: bash
+      run: |
+        if [ "${{ inputs.SLACK_WEBHOOK_URL }}" == "" ] || [ "${{ inputs.ADMIN_TOKEN }}" == "" ]; then
+          echo "Required Secret 'SLACK_WEBHOOK_URL' or 'ADMIN_TOKEN' is not set!"
+          exit 1
+        fi
+
+    - name: Comment on PR
+      uses: mshick/add-pr-comment@v2
+      if: always()
+      env:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      with:
+        message-success: '@${{ github.actor }} Image is available for testing. `docker pull ${{ inputs.IMAGE_REPOSITORY }}:${{ inputs.TAG }}`'
+        message-failure: '@${{ github.actor }} Yikes! You better fix it before anyone else finds out! [Build](https://github.com/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }}/checks) has Failed!'
+        allow-repeats: true
+
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      if: always()
+      with:
+        status: ${{ job.status }}
+        fields: repo,author,action,eventName,ref,workflow
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

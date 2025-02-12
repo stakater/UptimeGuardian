@@ -3,15 +3,13 @@ description: "Setup Docker"
 inputs:
   PR:
     description: Go version to use
-    default: false
+    default: "false"
     required: false
-    type: string
 
   RELEASE_BRANCH:
     description: Release branch to push changes
     required: false
     default: main
-    type: string
 outputs:
   TAG:
     description: "The tag for the workflow run"
@@ -33,11 +31,13 @@ runs:
     - name: Rename Tag Output
       id: tag
       if: ${{ inputs.PR != true }}
+      shell: bash
       run: echo "TAG=${{ steps.generate.outputs.new_tag }}" >> $GITHUB_OUTPUT
 
     - name: Generate Tag
       if: ${{ inputs.PR == true }}
       id: tag
+      shell: bash
       run: |
         sha=${{ github.event.pull_request.head.sha }}
         tag="SNAPSHOT-PR-${{ github.event.pull_request.number }}-${sha:0:8}"

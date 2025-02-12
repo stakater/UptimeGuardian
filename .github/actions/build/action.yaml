@@ -1,29 +1,27 @@
-name: "Bundle"
-description: "Build & push Operator bundle"
+name: "Build & Push"
+description: "Build and push images"
 inputs:
   TAG:
-    description: Git action Tag
+    description: "The tag for the workflow run"
     required: true
-    type: string
+
+  IMAGE_REPOSITORY:
+    description: "The tag for the workflow run"
+    required: true
 
   OPERATOR_SDK_VERSION:
     description: Operator SDK version to use
     default: "v1.32.0"
     required: false
-    type: string
 
   OPM_VERSION:
     description: OPM CLI version to use
     default: "v1.50.0"
     required: false
-    type: string
-outputs:
-  lint_status:
-    description: 'The result of the linting step'
 runs:
   using: "composite"
   steps:
-    - name: Install CLI tools from OpenShift Mirror
+    - name: Install CLI tools
       uses: redhat-actions/openshift-tools-installer@v1
       with:
         source: "github"
@@ -32,5 +30,12 @@ runs:
 
     - name: Build and Push Bundle
       run: make bundle bundle-build bundle-push
+      shell: bash
+      env:
+        PR_TAG: -${{ inputs.TAG }}
+
+    - name: Build and Push Catalog
+      run: make catalog-render catalog-build catalog-push
+      shell: bash
       env:
         PR_TAG: -${{ inputs.TAG }}
