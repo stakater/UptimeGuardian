@@ -14,7 +14,7 @@ jobs:
   push-operator:
     name: Push Operator
     if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
-#    uses: stakater/.github/.github/workflows/operator_push.yaml@main
+    #    uses: stakater/.github/.github/workflows/operator_push.yaml@main
     uses: ./.github/workflows/_push.yaml
     secrets:
       ADMIN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -23,8 +23,5 @@ jobs:
       CONTAINER_REGISTRY_USERNAME: stakater-user
       CONTAINER_REGISTRY_PASSWORD: ${{ secrets.GHCR_TOKEN }}
     with:
-      GOLANG_VERSION: ~1.23
-      RUN_GOLANG_CI_LINT: false
-      RUN_GOLANG_TESTS: true
-      RELEASE_BRANCH: main
-      OPERATOR_SDK_VERSION: v1.36.1
+      ENABLE_LINTING: true
+      ENABLE_UNIT_TESTS: true
