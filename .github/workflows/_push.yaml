@@ -69,7 +69,6 @@ jobs:
         id: tag
         uses: ./.github/actions/tag
         with:
-          PR: true
           RELEASE_BRANCH: ${{ inputs.RELEASE_BRANCH }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
