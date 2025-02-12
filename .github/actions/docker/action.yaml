@@ -32,9 +32,9 @@ runs:
     - name: Login to Registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ CONTAINER_REGISTRY_URL }}
-        username: ${{ CONTAINER_REGISTRY_USERNAME }}
-        password: ${{ CONTAINER_REGISTRY_PASSWORD }}
+        registry: ${{ env.CONTAINER_REGISTRY_URL }}
+        username: ${{ env.CONTAINER_REGISTRY_USERNAME }}
+        password: ${{ env.CONTAINER_REGISTRY_PASSWORD }}
 
     - name: Generate image repository path
       id: repository
