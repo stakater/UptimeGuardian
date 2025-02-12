@@ -67,15 +67,6 @@ on:
       CONTAINER_REGISTRY_PASSWORD:
         description: "Registry password to login"
         required: true
-
-      ADMIN_TOKEN:
-        description: "Github admin token"
-        required: true
-
-      GITHUB_TOKEN:
-        description: "github access token"
-        required: true
-
 jobs:
   make-operator-pull-request:
     name: Operator Pull Request
