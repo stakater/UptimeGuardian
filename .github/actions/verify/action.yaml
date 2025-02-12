@@ -28,6 +28,7 @@ runs:
       uses: actions/setup-go@v5
       with:
         go-version: ${{ inputs.GO_VERSION }}
+        cache: true
 
     - name: Run Lint
       if: ${{ inputs.ENABLE_LINTING }}
