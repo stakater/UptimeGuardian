@@ -8,25 +8,24 @@ inputs:
   IMAGE_REPOSITORY:
     description: "The tag for the workflow run"
     required: true
-#
-#  OPERATOR_SDK_VERSION:
-#    description: Operator SDK version to use
-#    default: "v1.32.0"
-#    required: false
-#
-#  OPM_VERSION:
-#    description: OPM CLI version to use
-#    default: "v1.50.0"
-#    required: false
+  #
+  #  OPERATOR_SDK_VERSION:
+  #    description: Operator SDK version to use
+  #    default: "v1.32.0"
+  #    required: false
+
+  OPM_VERSION:
+    description: OPM CLI version to use
+    default: "v1.50.0"
+    required: false
 runs:
   using: "composite"
   steps:
-    #    - name: Install CLI tools
-    #      uses: redhat-actions/openshift-tools-installer@v1
-    #      with:
-    #        source: "github"
-    #        operator-sdk: ${{ inputs.OPERATOR_SDK_VERSION }}
-    #        opm: ${{ inputs.OPM_VERSION }}
+    - name: Install CLI tools
+      uses: redhat-actions/openshift-tools-installer@v1
+      with:
+        source: "github"
+        opm: ${{ inputs.OPM_VERSION }}
 
     - name: Build and Push Bundle
       run: make bundle bundle-build bundle-push
