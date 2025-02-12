@@ -39,3 +39,12 @@ runs:
       shell: bash
       env:
         PR_TAG: -${{ inputs.TAG }}
+
+    - name: Push Latest Tag
+      if: ${{ steps.catalog_changed.outputs.catalog == 'true' }}
+      uses: anothrNick/github-tag-action@1.71.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        WITH_V: true
+        RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
+        DEFAULT_BUMP: patch

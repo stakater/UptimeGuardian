@@ -13,8 +13,8 @@ runs:
     - name: Verify Slack secrets
       shell: bash
       run: |
-        if [ "$SLACK_WEBHOOK_URL" == "" ] || [ "$ADMIN_TOKEN" == "" ]; then
-          echo "Required Secret 'SLACK_WEBHOOK_URL' or 'ADMIN_TOKEN' is not set!"
+        if [ "$SLACK_WEBHOOK_URL" == "" ]; then
+          echo "Required Secret 'SLACK_WEBHOOK_URL' is not set!"
           exit 1
         fi
 
