@@ -14,17 +14,13 @@ on:
 jobs:
   operator-pull-request:
     name: Operator Pull Request
-#    uses: stakater/.github/.github/workflows/operator_pull_request.yaml@main
-    uses: stakater/UptimeGuardian/.github/workflows/_pr.yaml@main
+    #    uses: stakater/.github/.github/workflows/operator_pull_request.yaml@main
+    uses: ./.github/workflows/_pr.yaml
     secrets:
       CONTAINER_REGISTRY_URL: ghcr.io/stakater
       CONTAINER_REGISTRY_USERNAME: stakater-user
       CONTAINER_REGISTRY_PASSWORD: ${{ secrets.GHCR_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.STAKATER_DELIVERY_SLACK_WEBHOOK }}
     with:
-      GOLANG_VERSION: ~1.23
-      DOCKERFILE_PATH: Dockerfile
-      GOLANG_CI_LINT_VERSION: v1.53.3
-      Run_GOLANG_CI_LINT: false
-      RUN_GOLANG_TESTS: true
-      OPERATOR_SDK_VERSION: v1.36.1
+      ENABLE_LINTING: true
+      ENABLE_UNIT_TESTS: true

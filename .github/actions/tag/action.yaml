@@ -1,44 +1,40 @@
 name: "Generate Tag"
 description: "Setup Docker"
 inputs:
-  PR:
-    description: Go version to use
-    default: false
-    required: false
-    type: string
-
   RELEASE_BRANCH:
     description: Release branch to push changes
     required: false
     default: main
-    type: string
 outputs:
   TAG:
     description: "The tag for the workflow run"
     value: ${{ steps.tag.outputs.TAG }}
+
+  PR_TAG:
+    description: "The PR tag for the workflow run"
+    value: ${{ steps.tag.outputs.PR_TAG }}
 runs:
   using: "composite"
   steps:
     - name: Generate Tag
       id: generate
-      if: ${{ inputs.PR != true }}
       uses: anothrNick/github-tag-action@1.71.0
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
         WITH_V: false
         DEFAULT_BUMP: patch
         RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
         DRY_RUN: true
 
-    - name: Rename Tag Output
-      id: tag
-      if: ${{ inputs.PR != true }}
-      run: echo "TAG=${{ steps.generate.outputs.new_tag }}" >> $GITHUB_OUTPUT
+    - name: Set Tag
+      shell: bash
+      run: echo "TAG=${{ steps.generate.outputs.new_tag }}" >> $GITHUB_ENV
 
-    - name: Generate Tag
-      if: ${{ inputs.PR == true }}
+    - name: Set Tag
       id: tag
+      shell: bash
       run: |
         sha=${{ github.event.pull_request.head.sha }}
-        tag="SNAPSHOT-PR-${{ github.event.pull_request.number }}-${sha:0:8}"
-        echo "TAG=$(echo ${tag})" >> $GITHUB_OUTPUT
+        tag="-SNAPSHOT-PR-${{ github.event.pull_request.number }}-${sha:0:8}"
+        echo "TAG=${{ steps.generate.outputs.new_tag }}" >> $GITHUB_OUTPUT
+        echo "PR_TAG=$(echo ${tag})" >> $GITHUB_OUTPUT
