@@ -186,7 +186,7 @@ var _ = Describe("SpokeClusterManagerController", func() {
 		It("should handle invalid kubeconfig data gracefully", func() {
 			// Set mock to return an error
 			getRestConfig = func(kubeconfigData []byte) (*rest.Config, error) {
-				return nil, fmt.Errorf("invalid kubeconfig data")
+				return nil, fmt.Errorf("invalid kubeconfig data %s", string(kubeconfigData))
 			}
 
 			req := reconcile.Request{
