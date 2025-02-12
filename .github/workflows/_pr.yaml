@@ -27,12 +27,6 @@ on:
         default: Dockerfile
         type: string
 
-      OPERATOR_SDK_VERSION:
-        description: Operator SDK version to use
-        default: "v1.32.0"
-        required: false
-        type: string
-
       OPM_VERSION:
         description: OPM CLI version to use
         default: "v1.50.0"
@@ -84,7 +78,7 @@ jobs:
         id: docker
         uses: ./.github/actions/docker
         with:
-          TAG: ${{ steps.tag.outputs.TAG }}
+          TAG: ${{ steps.tag.outputs.PR_TAG }}
         env:
           CONTAINER_REGISTRY_URL: ${{ secrets.CONTAINER_REGISTRY_URL }}
           CONTAINER_REGISTRY_USERNAME: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
@@ -93,17 +87,16 @@ jobs:
       - name: Build & Push
         uses: ./.github/actions/build
         with:
-          TAG: ${{ steps.tag.outputs.TAG }}
+          TAG: ${{ steps.tag.outputs.PR_TAG }}
           IMAGE_REPOSITORY: ${{ steps.docker.outputs.IMAGE_REPOSITORY }}
-        #          OPERATOR_SDK_VERSION: ${{ inputs.OPERATOR_SDK_VERSION }}
-        #          OPM_VERSION: ${{ inputs.OPM_VERSION }}
+          OPM_VERSION: ${{ inputs.OPM_VERSION }}
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
 
       - name: Notify
         uses: ./.github/actions/notify
         with:
-          TAG: ${{ steps.tag.outputs.TAG }}
+          TAG: ${{ steps.tag.outputs.PR_TAG }}
           IMAGE_REPOSITORY: ${{ steps.docker.outputs.IMAGE_REPOSITORY }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
