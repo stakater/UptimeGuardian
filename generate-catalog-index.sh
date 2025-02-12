@@ -17,19 +17,16 @@ echo " catalog build start"
 SHOULD_RELEASE="false"
 for item in $CHANNEL_BUNDLES; do
   # Setup bundle from entries
-  if [ -n "$GIT_TAG" ]; then
+  latest="${OPERATOR_NAME}.v${VERSION}"
+  if [ -n "$GIT_TAG" ] && [ "$latest" == "$item" ]; then
       bundle="${item//${OPERATOR_NAME}./${OPERATOR_NAME}-bundle:}${GIT_TAG}"
-      release="${OPERATOR_NAME}-bundle:v${VERSION}${GIT_TAG}"
   else
       bundle="${item//${OPERATOR_NAME}./${OPERATOR_NAME}-bundle:}"
-      release="${OPERATOR_NAME}-bundle:v${VERSION}"
   fi
 
   # Check if next release is defined in any channel
-  if [ "${bundle}" == "${release}" ]; then
+  if [ "$latest" == "$item" ]; then
       SHOULD_RELEASE="true"
-  else
-      SHOULD_RELEASE="false"
   fi
 
   opm render "$DOCKER_REPO/$bundle" --output=yaml >> "$CATALOG_DIR_PATH"/bundles.yaml
@@ -45,8 +42,5 @@ done
       echo "  >> release is not defined in ${CATALOG_DIR_PATH}/channels.yaml, will not create catalog index"
   fi
 
-rm -rf "$CATALOG_DIR_PATH"/bundles.yaml
+#rm -rf "$CATALOG_DIR_PATH"/bundles.yaml
 echo " catalog build done!"
-
-## Delete entries
-#yq eval 'del(select(.schema == "olm.bundle"))' -i catalog/index.yaml

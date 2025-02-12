@@ -41,12 +41,23 @@ const (
 	ClusterNameLabel = "cluster-name"
 )
 
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=probes,verbs=get;list;watch;create;update;patch;delete
+
 func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.logger = log.FromContext(ctx).WithName(r.Name)
 	r.logger.Info("Reconciling SpokeRoute")
 
 	uptimeProbe := &v1alpha1.UptimeProbe{}
 	if err := r.Get(ctx, req.NamespacedName, uptimeProbe); err != nil {
+		if errors.IsNotFound(err) {
+			// UptimeProbe is deleted, clean up any probes that were created by this UptimeProbe
+			err = r.cleanupStaleProbes(ctx, req.Name, req.Namespace, nil)
+			if err != nil {
+				r.logger.Error(err, "Failed to cleanup probes for deleted UptimeProbe")
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -56,11 +67,12 @@ func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// delete earlier created probes which do not match the label selector anymore
-	err = r.cleanupStaleProbes(ctx, uptimeProbe, routes)
+	err = r.cleanupStaleProbes(ctx, uptimeProbe.Name, uptimeProbe.Namespace, routes)
 	if err != nil {
 		// continue with the rest of the reconciliation
 		// TODO: should continue with error?
 		r.logger.Error(err, fmt.Sprintf("Failed to cleanup stale probes for uptimeProbe %v", uptimeProbe.GetName()))
+		return ctrl.Result{}, err
 	}
 
 	// create or update probes for each route
@@ -73,14 +85,31 @@ func (r *SpokeRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (r *SpokeRouteReconciler) cleanupStaleProbes(ctx context.Context, uptimeProbe *v1alpha1.UptimeProbe, routes *unstructured.UnstructuredList) error {
+func (r *SpokeRouteReconciler) cleanupStaleProbes(ctx context.Context, uptimeProbeName, uptimeProbeNamespace string, routes *unstructured.UnstructuredList) error {
 	// Get all probes that were created by this uptimeProbe (using the uptimeProbe label)
-	probes, err := r.getProbesMatchingUptimeProbeLabel(ctx, uptimeProbe)
+	probes, err := r.getProbesMatchingUptimeProbeLabel(ctx, uptimeProbeName, uptimeProbeNamespace)
 	if err != nil {
 		return err
 	}
 
 	if len(probes.Items) == 0 {
+		return nil
+	}
+
+	var errs []error
+
+	// If routes is nil, delete all probes (UptimeProbe was deleted)
+	if routes == nil {
+		for _, probe := range probes.Items {
+			r.logger.Info(fmt.Sprintf("Deleting probe %v as UptimeProbe was deleted", probe.GetName()))
+			if err := r.Delete(ctx, &probe); err != nil {
+				r.logger.Error(err, fmt.Sprintf("Failed to delete probe %v", probe.GetName()))
+				errs = append(errs, fmt.Errorf("failed to delete probe %v: %w", probe.GetName(), err))
+			}
+		}
+		if len(errs) > 0 {
+			return fmt.Errorf("failed to delete one or more probes: %v", errs)
+		}
 		return nil
 	}
 
@@ -92,22 +121,25 @@ func (r *SpokeRouteReconciler) cleanupStaleProbes(ctx context.Context, uptimePro
 	}
 
 	// Delete any probe that was created by this uptimeProbe but is no longer needed
-	// (i.e., its corresponding route no longer matches the label selector)
 	for _, probe := range probes.Items {
 		if !expectedProbes[probe.GetName()] {
 			r.logger.Info(fmt.Sprintf("Deleting stale probe %v as its route no longer matches the label selector", probe.GetName()))
 			if err := r.Delete(ctx, &probe); err != nil {
 				r.logger.Error(err, fmt.Sprintf("Failed to delete probe %v", probe.GetName()))
+				errs = append(errs, fmt.Errorf("failed to delete probe %v: %w", probe.GetName(), err))
 			}
 		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to delete one or more probes: %v", errs)
 	}
 
 	return nil
 }
 
-func (r *SpokeRouteReconciler) getProbesMatchingUptimeProbeLabel(ctx context.Context, uptimeProbe *v1alpha1.UptimeProbe) (*monitoringv1.ProbeList, error) {
-
-	uptimeProbeLabels := r.getUptimeProbeLabels(uptimeProbe)
+func (r *SpokeRouteReconciler) getProbesMatchingUptimeProbeLabel(ctx context.Context, uptimeProbeName, uptimeProbeNamespace string) (*monitoringv1.ProbeList, error) {
+	uptimeProbeLabels := r.getUptimeProbeLabels(uptimeProbeName, uptimeProbeNamespace)
 
 	probes := &monitoringv1.ProbeList{}
 	if err := r.List(ctx, probes, client.MatchingLabels(uptimeProbeLabels)); err != nil {
@@ -156,9 +188,9 @@ func (r *SpokeRouteReconciler) getDurationFromAnnotation(route *unstructured.Uns
 	return defaultValue
 }
 
-func (r *SpokeRouteReconciler) getUptimeProbeLabels(uptimeProbe *v1alpha1.UptimeProbe) map[string]string {
+func (r *SpokeRouteReconciler) getUptimeProbeLabels(uptimeProbeName, uptimeProbeNamespace string) map[string]string {
 	return map[string]string{
-		UptimeProbeLabel: fmt.Sprintf("%v-%v", uptimeProbe.GetNamespace(), uptimeProbe.GetName()),
+		UptimeProbeLabel: fmt.Sprintf("%v-%v", uptimeProbeNamespace, uptimeProbeName),
 		ClusterNameLabel: r.Name,
 	}
 }
@@ -171,7 +203,7 @@ func (r *SpokeRouteReconciler) createProbe(ctx context.Context, uptimeProbe *v1a
 		ObjectMeta: v1.ObjectMeta{
 			Name:      probeName,
 			Namespace: uptimeProbe.Spec.ProbeConfig.TargetNamespace,
-			Labels:    r.getUptimeProbeLabels(uptimeProbe),
+			Labels:    r.getUptimeProbeLabels(uptimeProbe.Name, uptimeProbe.Namespace),
 		},
 		Spec: monitoringv1.ProbeSpec{
 			JobName:       uptimeProbe.Spec.ProbeConfig.JobName,

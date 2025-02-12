@@ -6,4 +6,15 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: uptimeprobe-sample
 spec:
-  # TODO(user): Add fields here
+  labelSelector:
+    matchLabels:
+      app.kubernetes.io/name: thanos-query
+  probeConfig:
+    module: http_2xx
+    jobName: default-uptime-probe-job
+    interval: 30s
+    scrapeTimeout: 10s
+    proberUrl: blackbox-exporter.openshift-monitoring.svc.cluster.local:9115
+    proberScheme: http
+    proberPath: /probe
+    targetNamespace: test-1
