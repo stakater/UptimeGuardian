@@ -8,7 +8,7 @@ inputs:
 
   ENABLE_LINTING:
     description: Run golangci-lint
-    default: "true"
+    default: true
     required: false
 
   LINT_VERSION:
@@ -18,7 +18,7 @@ inputs:
 
   ENABLE_UNIT_TESTS:
     description: Run golang tests
-    default: "true"
+    default: true
     required: false
 runs:
   using: "composite"
