@@ -46,7 +46,7 @@ runs:
       if: ${{ steps.catalog_changed.outputs.catalog == 'true' }}
       uses: anothrNick/github-tag-action@1.71.0
       env:
-        GITHUB_TOKEN: ${{ env.ADMIN_TOKEN }}
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
         WITH_V: true
         RELEASE_BRANCHES: ${{ inputs.RELEASE_BRANCH }}
         DEFAULT_BUMP: patch
