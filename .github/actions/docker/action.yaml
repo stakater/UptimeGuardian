@@ -15,7 +15,7 @@ runs:
     - name: Verify container registry secrets
       shell: bash
       run: |
-        if [ "${{ CONTAINER_REGISTRY_URL }}" == "" ] || [ "${{ CONTAINER_REGISTRY_USERNAME }}" == "" ] || [ "${{ CONTAINER_REGISTRY_PASSWORD }}" == "" ]; then
+        if [ "$CONTAINER_REGISTRY_URL" == "" ] || [ "$CONTAINER_REGISTRY_USERNAME" == "" ] || [ "$CONTAINER_REGISTRY_PASSWORD" == "" ]; then
           echo "Required secrets 'CONTAINER_REGISTRY_URL' or 'CONTAINER_REGISTRY_USERNAME' or 'CONTAINER_REGISTRY_PASSWORD' are not set!"
           exit 1
         fi
@@ -40,4 +40,4 @@ runs:
       id: repository
       shell: bash
       run: |
-        echo IMAGE_REPOSITORY=$(echo ${{ CONTAINER_REGISTRY_URL }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') | tee -a $GITHUB_OUTPUT $GITHUB_ENV
+        echo IMAGE_REPOSITORY=$(echo $CONTAINER_REGISTRY_URL/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') | tee -a $GITHUB_OUTPUT $GITHUB_ENV
