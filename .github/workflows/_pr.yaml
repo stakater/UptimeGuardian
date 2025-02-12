@@ -82,7 +82,6 @@ jobs:
         with:
           GO_VERSION: ${{ inputs.GO_VERSION }}
           ENABLE_LINTING: ${{ inputs.ENABLE_LINTING }}
-          LINT_VERSION: ${{ inputs.LINT_VERSION }}
           ENABLE_UNIT_TESTS: ${{ inputs.ENABLE_UNIT_TESTS }}
 
       - name: Setup Version Tag

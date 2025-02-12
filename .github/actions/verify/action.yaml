@@ -11,11 +11,6 @@ inputs:
     default: true
     required: false
 
-  LINT_VERSION:
-    description: golang-ci-lint version to use
-    default: "v1.53.3"
-    required: false
-
   ENABLE_UNIT_TESTS:
     description: Run golang tests
     default: true
@@ -30,13 +25,10 @@ runs:
         go-version: ${{ inputs.GO_VERSION }}
         cache: true
 
-    - name: Run Lint
+    - name: Run lint
       if: ${{ inputs.ENABLE_LINTING }}
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: ${{ inputs.LINT_VERSION }}
-        only-new-issues: false
-        args: --timeout 10m
+      shell: bash
+      run: make lint
 
     - name: Run Tests
       if: ${{ inputs.ENABLE_UNIT_TESTS }}
