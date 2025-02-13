@@ -103,7 +103,7 @@ Apart from using the VSCode launch configuration (by selecting the any unit test
 make test
 ```
 
-**Creating Release**
+### To Release
 Refer to [this](DEPLOY.md) if you want to make a release.
 
 ## Contributing to UptimeGuardian!
