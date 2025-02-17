@@ -34,7 +34,7 @@ Version will be bumped from ``existing release tag``, not what is set in Makefil
 * ``Next version`` is bumped from existing release version according to semver, for example v0.0.1 will be v0.0.2
 
 1. Add next version entry to ``catalog/channels`` according to OLM upgrade specifications.
-   - ```
+   ```
       entries:
          - name: uptimeguardian.v{{CURRENT}}
          - name: uptimeguardian.v{{NEXT}}
@@ -43,15 +43,6 @@ Version will be bumped from ``existing release tag``, not what is set in Makefil
    ```
 2. Make PR, test PR release
 3. Merge will build and push releases
-
-#### Update release version in Makefile
-``VERSION ?= {{VERSION}}`` for example 0.0.1
-
-#### Build & push operator image
-``make manifests build docker-build docker-push``
-
-### Build & push Bundle image
-``make bundle bundle-build bundle-push``
 
 #### More information
 https://docs.openshift.com/container-platform/4.17/operators/admin/olm-managing-custom-catalogs.html
