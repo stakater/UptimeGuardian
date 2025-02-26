@@ -48,8 +48,14 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Handle the creation of a manager for the new HostedCluster
 	if hostedCluster.DeletionTimestamp.IsZero() {
+		// Setup host watch
+		err := r.setupRemoteClientForHostCluster()
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+
 		// Create a manager for the Spoke cluster
-		err := r.setupRemoteClientForSpokeCluster(hostedCluster)
+		err = r.setupRemoteClientForSpokeCluster(hostedCluster)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -62,6 +68,30 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *SpokeClusterManagerReconciler) setupRemoteClientForHostCluster() error {
+	clientKey := "HOST"
+	if r.RemoteClients == nil {
+		r.RemoteClients = make(map[string]SpokeManager)
+	}
+
+	if _, ok := r.RemoteClients[clientKey]; ok {
+		return nil
+	}
+
+	r.RemoteClients[clientKey] = SpokeManager{
+		Interface:        dynamic.NewForConfigOrDie(r.manager.GetConfig()),
+		stopInformerChan: make(chan struct{}),
+	}
+
+	return (&SpokeRouteReconciler{
+		Client:       r.Client,
+		RemoteClient: r.RemoteClients[clientKey].Interface,
+		Scheme:       r.Scheme,
+		Name:         clientKey,
+		Stop:         r.RemoteClients[clientKey].stopInformerChan,
+	}).SetupWithManager(r.manager)
 }
 
 func (r *SpokeClusterManagerReconciler) setupRemoteClientForSpokeCluster(hostedCluster *v1beta1.
