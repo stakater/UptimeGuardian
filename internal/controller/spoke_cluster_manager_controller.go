@@ -71,7 +71,7 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 }
 
 func (r *SpokeClusterManagerReconciler) setupRemoteClientForHostCluster() error {
-	clientKey := "HOST"
+	clientKey := "host"
 	if r.RemoteClients == nil {
 		r.RemoteClients = make(map[string]SpokeManager)
 	}
