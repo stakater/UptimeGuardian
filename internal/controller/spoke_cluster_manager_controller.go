@@ -51,12 +51,6 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Handle the creation of a manager for the new HostedCluster
 	if hostedCluster.DeletionTimestamp.IsZero() {
-		// Setup host watch
-		// err := r.setupRemoteClientForHostCluster()
-		// if err != nil {
-		// 	return reconcile.Result{}, err
-		// }
-
 		// Create a manager for the Spoke cluster
 		err = r.setupRemoteClientForSpokeCluster(hostedCluster)
 		if err != nil {
