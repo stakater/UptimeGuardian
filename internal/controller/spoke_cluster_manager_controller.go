@@ -22,6 +22,8 @@ type SpokeManager struct {
 	stopInformerChan chan struct{}
 }
 
+const clientKey = "host"
+
 type SpokeClusterManagerReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
@@ -50,10 +52,10 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Handle the creation of a manager for the new HostedCluster
 	if hostedCluster.DeletionTimestamp.IsZero() {
 		// Setup host watch
-		err := r.setupRemoteClientForHostCluster()
-		if err != nil {
-			return reconcile.Result{}, err
-		}
+		// err := r.setupRemoteClientForHostCluster()
+		// if err != nil {
+		// 	return reconcile.Result{}, err
+		// }
 
 		// Create a manager for the Spoke cluster
 		err = r.setupRemoteClientForSpokeCluster(hostedCluster)
@@ -72,7 +74,6 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 }
 
 func (r *SpokeClusterManagerReconciler) setupRemoteClientForHostCluster() error {
-	clientKey := "host"
 	if r.RemoteClients == nil {
 		r.RemoteClients = make(map[string]SpokeManager)
 	}
@@ -167,7 +168,14 @@ var getRestConfig = func(kubeconfigData []byte) (*rest.Config, error) {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SpokeClusterManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
 	r.manager = mgr
+
+	err := r.setupRemoteClientForHostCluster()
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.HostedCluster{}).
 		Complete(r)

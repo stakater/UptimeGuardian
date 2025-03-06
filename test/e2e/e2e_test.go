@@ -253,6 +253,7 @@ var _ = Describe("UptimeGuardian E2E", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Wait for probe to be deleted
+			By("Cleaning up the monitoring Probes")
 			Eventually(func() error {
 				probe := &monitoringv1.Probe{}
 				return k8sClient.Get(ctx, types.NamespacedName{
@@ -403,6 +404,119 @@ var _ = Describe("UptimeGuardian E2E", Ordered, func() {
 					Namespace: hubNamespace,
 				}, probe)
 			}, "10s", interval).Should(HaveOccurred())
+		})
+	})
+
+	Context("When creating UptimeProbe for hub cluster routes", func() {
+		var (
+			uptimeProbe      *v1alpha1.UptimeProbe
+			skipCleanup      bool
+			hubDynamicClient dynamic.Interface
+		)
+
+		BeforeEach(func() {
+			skipCleanup = false
+
+			// Create dynamic client for hub cluster
+			config, err := utils.GetKubeConfigFromEnv()
+			Expect(err).NotTo(HaveOccurred(), "Should get kubeconfig")
+
+			hubDynamicClient, err = dynamic.NewForConfig(config)
+			Expect(err).NotTo(HaveOccurred(), "Should create dynamic client")
+
+			// Create UptimeProbe for hub cluster
+			uptimeProbe = &v1alpha1.UptimeProbe{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "e2e-test-hub-uptime-probe",
+					Namespace: hubNamespace,
+				},
+				Spec: v1alpha1.UptimeProbeSpec{
+					LabelSelector: metav1.LabelSelector{
+						MatchLabels: utils.ParseLabels(routeLabels),
+					},
+					ProbeConfig: v1alpha1.ProbeConfig{
+						JobName:         "hub-" + probeJobName,
+						Interval:        monitoringv1.Duration(probeInterval),
+						Module:          probeModule,
+						ScrapeTimeout:   monitoringv1.Duration(probeScrapeTimeout),
+						ProberUrl:       proberUrl,
+						ProberScheme:    proberScheme,
+						ProberPath:      proberPath,
+						TargetNamespace: hubNamespace,
+					},
+				},
+			}
+		})
+
+		AfterEach(func() {
+			if skipCleanup {
+				return
+			}
+			By("Cleaning up the UptimeProbe")
+			err := k8sClient.Delete(ctx, uptimeProbe)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Delete test routes using dynamic client
+			routes := []string{"hub-route1", "hub-route2"}
+			for _, route := range routes {
+				_ = hubDynamicClient.Resource(getRouteGVR()).Namespace(hubNamespace).Delete(ctx, route, metav1.DeleteOptions{})
+			}
+		})
+
+		It("should handle multiple hub cluster routes", func() {
+			By("Creating two routes in hub cluster")
+			route1Labels := utils.ParseLabels(routeLabels)
+			route2Labels := map[string]string{"app": "hub-app2", "env": "staging"}
+
+			// Create routes in hub cluster using dynamic client
+			err := createTestRoutes(ctx, hubDynamicClient, hubNamespace, "hub-route1", route1Labels)
+			Expect(err).NotTo(HaveOccurred())
+			err = createTestRoutes(ctx, hubDynamicClient, hubNamespace, "hub-route2", route2Labels)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Creating UptimeProbe matching route1")
+			uptimeProbe.Spec.LabelSelector.MatchLabels = route1Labels
+			Expect(k8sClient.Create(ctx, uptimeProbe)).Should(Succeed())
+
+			By("Verifying Probe CR is created for route1")
+			Eventually(func() error {
+				probe := &monitoringv1.Probe{}
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      fmt.Sprintf("%s-%s-%s", "host", hubNamespace, "hub-route1"),
+					Namespace: hubNamespace,
+				}, probe)
+			}, timeout, interval).Should(Succeed())
+
+			By("Verifying no Probe CR exists for route2")
+			Consistently(func() error {
+				probe := &monitoringv1.Probe{}
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      fmt.Sprintf("%s-%s-%s", "host", hubNamespace, "hub-route2"),
+					Namespace: hubNamespace,
+				}, probe)
+			}, "10s", interval).Should(HaveOccurred())
+
+			By("Updating UptimeProbe to match route2")
+			uptimeProbe.Spec.LabelSelector.MatchLabels = route2Labels
+			Expect(k8sClient.Update(ctx, uptimeProbe)).Should(Succeed())
+
+			By("Verifying Probe CR for route1 is deleted")
+			Eventually(func() error {
+				probe := &monitoringv1.Probe{}
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      fmt.Sprintf("%s-%s-%s", "host", hubNamespace, "hub-route1"),
+					Namespace: hubNamespace,
+				}, probe)
+			}, timeout, interval).Should(HaveOccurred())
+
+			By("Verifying Probe CR for route2 is created")
+			Eventually(func() error {
+				probe := &monitoringv1.Probe{}
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      fmt.Sprintf("%s-%s-%s", "host", hubNamespace, "hub-route2"),
+					Namespace: hubNamespace,
+				}, probe)
+			}, timeout, interval).Should(Succeed())
 		})
 	})
 })
