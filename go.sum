@@ -89,6 +89,8 @@ github.com/openshift/api v0.0.0-20250207102212-9e59a77ed2e0 h1:5n8BKML7fkmR4tz81
 github.com/openshift/api v0.0.0-20250207102212-9e59a77ed2e0/go.mod h1:yk60tHAmHhtVpJQo3TwVYq2zpuP70iJIFDCmeKMIzPw=
 github.com/openshift/api v0.0.0-20250220103441-744790f2cff7 h1:ZpV0tQRjn+ZamDJrmw99cb34Jj79yUVPOF91IC96hLQ=
 github.com/openshift/api v0.0.0-20250220103441-744790f2cff7/go.mod h1:yk60tHAmHhtVpJQo3TwVYq2zpuP70iJIFDCmeKMIzPw=
+github.com/openshift/api v0.0.0-20250305225826-b8da3bfeaf77 h1:w6F0sEhlUB1K54Ev4EELsLo5w/xur9pFT19VtemlB4Y=
+github.com/openshift/api v0.0.0-20250305225826-b8da3bfeaf77/go.mod h1:yk60tHAmHhtVpJQo3TwVYq2zpuP70iJIFDCmeKMIzPw=
 github.com/openshift/hypershift/api v0.0.0-20250131044905-e4b8dc574e05 h1:F64n1aprtp+lz29zGYTTyH8R6y09gOYh/KtXSx+014Y=
 github.com/openshift/hypershift/api v0.0.0-20250131044905-e4b8dc574e05/go.mod h1:fQFj8aH3buOKqmhMQ5igRVOT7iQdduxRE9H1LM/BiY0=
 github.com/openshift/hypershift/api v0.0.0-20250206165713-5fa2b283ad93 h1:fr4itcoejIu+an/l0qRQVtO51iqwN0jyK8nT92IBOUU=
