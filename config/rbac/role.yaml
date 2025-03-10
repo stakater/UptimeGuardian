@@ -35,6 +35,18 @@ rules:
 - apiGroups:
   - networking.stakater.com
   resources:
+  - routes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.stakater.com
+  resources:
   - uptimeprobes
   verbs:
   - create

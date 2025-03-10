@@ -22,6 +22,8 @@ type SpokeManager struct {
 	stopInformerChan chan struct{}
 }
 
+const clientKey = "host"
+
 type SpokeClusterManagerReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
@@ -35,6 +37,7 @@ type SpokeClusterManagerReconciler struct {
 //+kubebuilder:rbac:groups=networking.stakater.com,resources=uptimeprobes/finalizers,verbs=update
 //+kubebuilder:rbac:groups=hypershift.openshift.io,resources=hostedclusters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+//+kubebuilder:rbac:groups=networking.stakater.com,resources=routes,verbs=get;list;watch;create;update;patch;delete
 
 func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.log = log.FromContext(ctx)
@@ -49,7 +52,7 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Handle the creation of a manager for the new HostedCluster
 	if hostedCluster.DeletionTimestamp.IsZero() {
 		// Create a manager for the Spoke cluster
-		err := r.setupRemoteClientForSpokeCluster(hostedCluster)
+		err = r.setupRemoteClientForSpokeCluster(hostedCluster)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -62,6 +65,29 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *SpokeClusterManagerReconciler) setupRemoteClientForHostCluster() error {
+	if r.RemoteClients == nil {
+		r.RemoteClients = make(map[string]SpokeManager)
+	}
+
+	if _, ok := r.RemoteClients[clientKey]; ok {
+		return nil
+	}
+
+	r.RemoteClients[clientKey] = SpokeManager{
+		Interface:        dynamic.NewForConfigOrDie(r.manager.GetConfig()),
+		stopInformerChan: make(chan struct{}),
+	}
+
+	return (&SpokeRouteReconciler{
+		Client:       r.Client,
+		RemoteClient: r.RemoteClients[clientKey].Interface,
+		Scheme:       r.Scheme,
+		Name:         clientKey,
+		Stop:         r.RemoteClients[clientKey].stopInformerChan,
+	}).SetupWithManager(r.manager)
 }
 
 func (r *SpokeClusterManagerReconciler) setupRemoteClientForSpokeCluster(hostedCluster *v1beta1.
@@ -136,7 +162,14 @@ var getRestConfig = func(kubeconfigData []byte) (*rest.Config, error) {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SpokeClusterManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
 	r.manager = mgr
+
+	err := r.setupRemoteClientForHostCluster()
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.HostedCluster{}).
 		Complete(r)

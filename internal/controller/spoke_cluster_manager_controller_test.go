@@ -231,4 +231,21 @@ var _ = Describe("SpokeClusterManagerController", func() {
 			Expect(secondClient).To(Equal(firstClient))
 		})
 	})
+
+	Context("setupRemoteClientForHostCluster", func() {
+		It("should not create duplicate host client", func() {
+			// Setup initial state with existing host client
+			reconciler.RemoteClients = make(map[string]SpokeManager)
+			mockSpokeManager := newMockSpokeManager()
+			reconciler.RemoteClients[clientKey] = mockSpokeManager
+
+			// Try to setup host client again
+			err := reconciler.setupRemoteClientForHostCluster()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify the original client was not replaced
+			hostClient := reconciler.RemoteClients["host"]
+			Expect(hostClient).To(Equal(mockSpokeManager))
+		})
+	})
 })

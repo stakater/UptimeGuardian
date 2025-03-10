@@ -149,15 +149,8 @@ func GetProjectDir() (string, error) {
 
 // GetE2EClient returns a client for e2e tests
 func GetE2EClient() (client.Client, error) {
-	var cfg *rest.Config
-	var err error
-
 	// Try to get the config from the environment
-	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
-		cfg, err = config.GetConfigWithContext("")
-	} else {
-		cfg, err = config.GetConfig()
-	}
+	cfg, err := GetKubeConfigFromEnv()
 	if err != nil {
 		return nil, err
 	}
@@ -176,6 +169,15 @@ func GetE2EClient() (client.Client, error) {
 	}
 
 	return c, nil
+}
+
+func GetKubeConfigFromEnv() (*rest.Config, error) {
+	// Try to get the config from the environment
+	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
+		return config.GetConfigWithContext("")
+	} else {
+		return config.GetConfig()
+	}
 }
 
 // ParseLabels parses a string of labels in the format "key1=value1,key2=value2" into a map
