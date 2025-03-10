@@ -30,7 +30,7 @@ Version will be bumped from ``existing release tag``, not what is set in Makefil
 
 ### Catalog release will only occur when following conditions are met
 * Changes are made to files in ``catalog`` directory
-* ``Next version`` entry are specified in ``catalog/channels.yalm``
+* ``Next version`` entry are specified in ``catalog/channels.yaml``
 * ``Next version`` is bumped from existing release version according to semver, for example v0.0.1 will be v0.0.2
 
 1. Add next version entry to ``catalog/channels`` according to OLM upgrade specifications.
