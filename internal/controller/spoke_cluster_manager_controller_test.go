@@ -240,13 +240,13 @@ var _ = Describe("SpokeClusterManagerController", func() {
 			reconciler.RemoteClients[clientKey] = mockSpokeManager
 
 			// Try to setup host client again
-			stopCh := make(chan struct{})
-			err := reconciler.setupRemoteClientForHostCluster(stopCh)
+			stopChan, err := reconciler.setupRemoteClientForHostCluster()
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify the original client was not replaced
 			hostClient := reconciler.RemoteClients["host"]
 			Expect(hostClient).To(Equal(mockSpokeManager))
+			close(stopChan)
 		})
 	})
 })

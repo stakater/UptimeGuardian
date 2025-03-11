@@ -68,21 +68,21 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	return ctrl.Result{}, nil
 }
 
-func (r *SpokeClusterManagerReconciler) setupRemoteClientForHostCluster(stopCh chan struct{}) error {
+func (r *SpokeClusterManagerReconciler) setupRemoteClientForHostCluster() (chan struct{}, error) {
 	if r.RemoteClients == nil {
 		r.RemoteClients = make(map[string]SpokeManager)
 	}
 
 	if _, ok := r.RemoteClients[clientKey]; ok {
-		return nil
+		return nil, nil
 	}
 
 	r.RemoteClients[clientKey] = SpokeManager{
 		Interface:        dynamic.NewForConfigOrDie(r.manager.GetConfig()),
-		stopInformerChan: stopCh,
+		stopInformerChan: make(chan struct{}),
 	}
 
-	return (&SpokeRouteReconciler{
+	return r.RemoteClients[clientKey].stopInformerChan, (&SpokeRouteReconciler{
 		Client:       r.Client,
 		RemoteClient: r.RemoteClients[clientKey].Interface,
 		Scheme:       r.Scheme,
@@ -167,8 +167,7 @@ func (r *SpokeClusterManagerReconciler) SetupWithManager(mgr ctrl.Manager) error
 	r.manager = mgr
 
 	// setup remote client for host cluster with stop channel
-	stopChan := make(chan struct{})
-	err := r.setupRemoteClientForHostCluster(stopChan)
+	stopChan, err := r.setupRemoteClientForHostCluster()
 	if err != nil {
 		return err
 	}
