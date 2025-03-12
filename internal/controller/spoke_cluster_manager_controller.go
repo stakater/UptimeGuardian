@@ -14,6 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -67,13 +68,13 @@ func (r *SpokeClusterManagerReconciler) Reconcile(ctx context.Context, req ctrl.
 	return ctrl.Result{}, nil
 }
 
-func (r *SpokeClusterManagerReconciler) setupRemoteClientForHostCluster() error {
+func (r *SpokeClusterManagerReconciler) setupRemoteClientForHostCluster() (chan struct{}, error) {
 	if r.RemoteClients == nil {
 		r.RemoteClients = make(map[string]SpokeManager)
 	}
 
 	if _, ok := r.RemoteClients[clientKey]; ok {
-		return nil
+		return nil, nil
 	}
 
 	r.RemoteClients[clientKey] = SpokeManager{
@@ -81,7 +82,7 @@ func (r *SpokeClusterManagerReconciler) setupRemoteClientForHostCluster() error 
 		stopInformerChan: make(chan struct{}),
 	}
 
-	return (&SpokeRouteReconciler{
+	return r.RemoteClients[clientKey].stopInformerChan, (&SpokeRouteReconciler{
 		Client:       r.Client,
 		RemoteClient: r.RemoteClients[clientKey].Interface,
 		Scheme:       r.Scheme,
@@ -165,8 +166,19 @@ func (r *SpokeClusterManagerReconciler) SetupWithManager(mgr ctrl.Manager) error
 
 	r.manager = mgr
 
-	err := r.setupRemoteClientForHostCluster()
+	// setup remote client for host cluster with stop channel
+	stopChan, err := r.setupRemoteClientForHostCluster()
 	if err != nil {
+		return err
+	}
+
+	// Add cleanup to manager
+	if err := mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
+		<-ctx.Done()
+		delete(r.RemoteClients, clientKey)
+		close(stopChan)
+		return nil
+	})); err != nil {
 		return err
 	}
 
