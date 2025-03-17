@@ -88,6 +88,12 @@ make run
 ```
 
 **Running E2E Tests:**
+
+Make sure that operator is running
+```bash
+make run
+```
+
 Use the provided VSCode launch configuration to execute the end-to-end tests. The launch file contains the necessary configuration for running tests in your development environment. `Debug E2E Tests` is the launch configuration for running the end-to-end tests. It have environment variables which can be used to configure the test. To run the test in VSCode, you need to select the test name and then click on the `Debug E2E Tests` launch configuration.
 
 If you want to run the test outside of VSCode, you can run the following command (make sure you have all the environment variables set mentioned in the launch configuration `launch.json`):

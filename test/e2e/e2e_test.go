@@ -519,4 +519,110 @@ var _ = Describe("UptimeGuardian E2E", Ordered, func() {
 			}, timeout, interval).Should(Succeed())
 		})
 	})
+
+	Context("When testing host cluster route monitoring", func() {
+		var (
+			uptimeProbe      *v1alpha1.UptimeProbe
+			skipCleanup      bool
+			hubDynamicClient dynamic.Interface
+		)
+
+		BeforeEach(func() {
+			skipCleanup = false
+
+			// Create dynamic client for host cluster
+			config, err := utils.GetKubeConfigFromEnv()
+			Expect(err).NotTo(HaveOccurred(), "Should get kubeconfig")
+
+			hubDynamicClient, err = dynamic.NewForConfig(config)
+			Expect(err).NotTo(HaveOccurred(), "Should create dynamic client")
+
+			// Create UptimeProbe for host cluster
+			uptimeProbe = &v1alpha1.UptimeProbe{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "e2e-test-host-uptime-probe",
+					Namespace: hubNamespace,
+				},
+				Spec: v1alpha1.UptimeProbeSpec{
+					LabelSelector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"monitor": "host"},
+					},
+					ProbeConfig: v1alpha1.ProbeConfig{
+						JobName:         "host-" + probeJobName,
+						Interval:        monitoringv1.Duration(probeInterval),
+						Module:          probeModule,
+						ScrapeTimeout:   monitoringv1.Duration(probeScrapeTimeout),
+						ProberUrl:       proberUrl,
+						ProberScheme:    proberScheme,
+						ProberPath:      proberPath,
+						TargetNamespace: hubNamespace,
+					},
+				},
+			}
+		})
+
+		AfterEach(func() {
+			if skipCleanup {
+				return
+			}
+			// Cleanup
+			Expect(k8sClient.Delete(ctx, uptimeProbe)).Should(Succeed())
+
+			// Delete test routes
+			_ = hubDynamicClient.Resource(getRouteGVR()).Namespace(hubNamespace).Delete(ctx, "host-route", metav1.DeleteOptions{})
+		})
+
+		It("should monitor host cluster routes", func() {
+			By("Creating route in host cluster")
+			hostLabels := map[string]string{"monitor": "host"}
+			err := createTestRoutes(ctx, hubDynamicClient, hubNamespace, "host-route", hostLabels)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Creating UptimeProbe for host routes")
+			Expect(k8sClient.Create(ctx, uptimeProbe)).Should(Succeed())
+
+			By("Verifying Probe CR is created with correct name format")
+			Eventually(func() error {
+				probe := &monitoringv1.Probe{}
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      fmt.Sprintf("%s-%s-%s", "host", hubNamespace, "host-route"),
+					Namespace: hubNamespace,
+				}, probe)
+			}, timeout, interval).Should(Succeed())
+
+			By("Verifying Probe CR has correct configuration")
+			probe := &monitoringv1.Probe{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name:      fmt.Sprintf("%s-%s-%s", "host", hubNamespace, "host-route"),
+				Namespace: hubNamespace,
+			}, probe)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(probe.Spec.JobName).To(Equal("host-" + probeJobName))
+			Expect(string(probe.Spec.Interval)).To(Equal(probeInterval))
+			Expect(probe.Spec.Module).To(Equal(probeModule))
+		})
+
+		It("should handle route deletion in host cluster", func() {
+			By("Creating route in host cluster")
+			hostLabels := map[string]string{"monitor": "host"}
+			err := createTestRoutes(ctx, hubDynamicClient, hubNamespace, "host-route", hostLabels)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Creating UptimeProbe for host routes")
+			Expect(k8sClient.Create(ctx, uptimeProbe)).Should(Succeed())
+
+			By("Deleting the route")
+			err = hubDynamicClient.Resource(getRouteGVR()).Namespace(hubNamespace).Delete(ctx, "host-route", metav1.DeleteOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Verifying Probe CR is removed")
+			Eventually(func() error {
+				probe := &monitoringv1.Probe{}
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      fmt.Sprintf("%s-%s-%s", "host", hubNamespace, "host-route"),
+					Namespace: hubNamespace,
+				}, probe)
+			}, timeout, interval).Should(HaveOccurred())
+		})
+	})
 })
