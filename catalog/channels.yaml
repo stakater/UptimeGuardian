@@ -10,3 +10,8 @@ entries:
     skips:
       - uptimeguardian.v0.0.1
       - uptimeguardian.v0.0.2
+  # - name: uptimeguardian.v0.0.4
+  #   skips:
+  #     - uptimeguardian.v0.0.1
+  #     - uptimeguardian.v0.0.2
+  #     - uptimeguardian.v0.0.3

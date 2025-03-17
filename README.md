@@ -89,25 +89,33 @@ make run
 
 **Running E2E Tests:**
 
-Make sure that operator is running
+E2E is not yet configured in Github Actions due to missing HyperShift cluster setup for testing.
+
+We connect to a remote HyperShift cluster locally and then run the E2E tests. Follow below steps to do that:
+
+- Make sure you are connected to a HyperShift cluster and it is the default context for `oc` or `kubectl` cli in your environment.
+
+- Make sure that operator is running
 ```bash
 make run
 ```
+- Make sure [.env.e2e](.env.e2e) file have the right configurations as per your cluster. These configs are being used in the E2E tests.
 
-Use the provided VSCode launch configuration to execute the end-to-end tests. The launch file contains the necessary configuration for running tests in your development environment. `Debug E2E Tests` is the launch configuration for running the end-to-end tests. It have environment variables which can be used to configure the test. To run the test in VSCode, you need to select the test name and then click on the `Debug E2E Tests` launch configuration.
-
-If you want to run the test outside of VSCode, you can run the following command (make sure you have all the environment variables set mentioned in the launch configuration `launch.json`):
-
+- Run the tests
 ```sh
 make test-e2e
 ```
 
-**Running Unit Tests:**
-Apart from using the VSCode launch configuration (by selecting the any unit test name as regex and then clicking on the `Debug Unit Tests` launch configuration), you can also run the unit tests using the following command:
+For `VSCode`: To run individual tests, we have `Debug E2E Tests` launch configuration. Just select the test name and run the debugger.
 
+**Running Unit Tests:**
+
+Run by this command:
 ```sh
 make test
 ```
+
+For `VSCode`: To run individual tests, we have `Debug Unit Tests` launch configuration. Just select the test name and run the debugger.
 
 ### To Release
 Refer to [this](DEPLOY.md) if you want to make a release.
