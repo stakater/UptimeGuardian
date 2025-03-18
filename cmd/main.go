@@ -39,7 +39,7 @@ import (
 	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
 	"github.com/stakater/UptimeGuardian/internal/controller"
 
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 
 	hostedCluster "github.com/openshift/hypershift/api/hypershift/v1beta1"
 )
@@ -54,7 +54,7 @@ func init() {
 	utilruntime.Must(hostedCluster.AddToScheme(scheme))
 	utilruntime.Must(networkingv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {

@@ -35,7 +35,7 @@ import (
 
 	hostedCluster "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	networkingv1alpha1 "github.com/stakater/UptimeGuardian/api/v1alpha1"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -83,7 +83,7 @@ var _ = BeforeSuite(func() {
 	err = monitoringv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
