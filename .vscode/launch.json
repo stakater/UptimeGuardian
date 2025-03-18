@@ -34,22 +34,10 @@
         "${selectedText}"
       ], // Verbose test output
       "preLaunchTask": "", // This should match the label of your pre-test task
+      "envFile": "${workspaceFolder}/.env.e2e",
       "env": {
-        "GOFLAGS": "-count=1", // Avoid test caching
-        "HOSTED_CLUSTER_NAME": "c7ked5y6v",
-        "HOSTED_CLUSTER_NAMESPACE": "hypershift-c7ked5y6v",
-        "SPOKE_ROUTE_NAMESPACE": "openshift-monitoring",
-        "HUB_NAMESPACE": "c7ked5y6v",
-        "ROUTE_NAME": "e2e-example-route",
-        "ROUTE_LABELS": "app=example,env=prod",
-        "PROBE_JOB_NAME": "e2e-uptime-probe-job",
-        "PROBE_INTERVAL": "30s",
-        "PROBE_TIMEOUT": "10s",
-        "PROBE_MODULE": "http_2xx",
-        "PROBER_URL": "e2e-blackbox-exporter.openshift-monitoring.svc.cluster.local:9115",
-        "PROBER_SCHEME": "http",
-        "PROBER_PATH": "/probe"
-      },
-    },
+        "GOFLAGS": "-count=1"
+      }
+    }
   ]
 }

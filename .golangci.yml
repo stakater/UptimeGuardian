@@ -18,7 +18,7 @@ issues:
         - lll
     - path: "test/*"
       linters:
-        - dupl
+        #- dupl
         - lll
 linters:
   disable-all: true
@@ -26,6 +26,7 @@ linters:
     - dupl
     - errcheck
     - copyloopvar
+    - ginkgolinter
     - goconst
     - gocyclo
     - gofmt
@@ -37,8 +38,14 @@ linters:
     - misspell
     - nakedret
     - prealloc
+    - revive
     - staticcheck
     - typecheck
     - unconvert
     - unparam
     - unused
+
+linters-settings:
+  revive:
+    rules:
+      - name: comment-spacings
