@@ -1,6 +1,8 @@
 module github.com/stakater/UptimeGuardian
 
-go 1.24
+go 1.23.0
+
+toolchain go1.23.5
 
 require (
 	github.com/go-logr/logr v1.4.2
