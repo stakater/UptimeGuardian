@@ -45,7 +45,8 @@ linters:
     - unparam
     - unused
 
-linters-settings:
-  revive:
-    rules:
-      - name: comment-spacings
+# commenting this out since it does not work when we need two comments together for generation
+# linters-settings:
+#   revive:
+#     rules:
+#       - name: comment-spacings

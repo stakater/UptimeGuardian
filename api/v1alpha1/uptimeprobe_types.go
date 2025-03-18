@@ -45,7 +45,6 @@ type UptimeProbeStatus struct {
 }
 
 // +kubebuilder:object:root=true
-
 // +kubebuilder:subresource:status
 
 // UptimeProbe is the Schema for the uptimeprobes API
