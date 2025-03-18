@@ -44,8 +44,8 @@ type UptimeProbeStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // UptimeProbe is the Schema for the uptimeprobes API
 type UptimeProbe struct {
@@ -56,7 +56,7 @@ type UptimeProbe struct {
 	Status UptimeProbeStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // UptimeProbeList contains a list of UptimeProbe
 type UptimeProbeList struct {
