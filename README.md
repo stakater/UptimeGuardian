@@ -1,12 +1,12 @@
 # Uptime Guardian Operator
-UptimeGuardian is an OpenShift operator which runs in the Hub cluster and watches `Routes` in the Spoke clusters and creates corresponding Prometheus `Probes` in the Hub cluster.
+UptimeGuardian is an OpenShift operator which runs in the Hub cluster and watches `Routes` in the Hub and Spoke clusters and creates corresponding Prometheus `Probes` in the Hub cluster.
 
 ## Description
 UptimeGuardian is designed to operate in a hub-spoke architecture, where it is installed on the hub (mothershift) cluster. The operator performs the following key functions:
 
-1. Watches `HostedCluster` Custom Resources (CRs) in the hub cluster to discover and maintain connections with spoke (childshift) clusters
+1. Watches `Routes` and `HostedCluster` Custom Resources (CRs) in the hub cluster.
 2. Establishes secure connections to the spoke clusters using the credentials and configuration from the `HostedCluster` CRs
-3. Monitors `Routes` in the spoke clusters based on configured label selectors
+3. Monitors `Routes` in the hub and spoke clusters based on configured label selectors
 4. Creates and manages corresponding Prometheus `Probe` resources in the hub cluster
 
 To use UptimeGuardian, you need to:
