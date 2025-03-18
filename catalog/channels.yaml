@@ -2,11 +2,5 @@ schema: olm.channel
 package: uptimeguardian
 name: preview
 entries:
-  - name: uptimeguardian.v0.0.1
-  - name: uptimeguardian.v0.0.2
-    skips:
-      - uptimeguardian.v0.0.1
-  - name: uptimeguardian.v0.0.3
-    skips:
-      - uptimeguardian.v0.0.1
-      - uptimeguardian.v0.0.2
+  - name: uptimeguardian.v0.0.5
+    skipRange: ">=0.0.1 <0.0.5"
